@@ -370,7 +370,7 @@ def type_of_care_column(df):
             
         intensive = float("{:.1f}".format(dfr.loc[j, (Bcc, "Intensive care (%)")]))         #intensive care section
         
-        if pd.isna(intensive) == False and type(intensive) != str:
+        if pd.isna(intensive) == False and type(intensive) != str and intensive != 0:
             
             dfr.loc[j, ("Type of care", "Type of care")] = dfr.loc[j, ("Type of care", "Type of care")] + \
                 "Intensive care (" + str(intensive) + "%)"
@@ -399,8 +399,12 @@ def severity_column(df):
         
         mild = float("{:.1f}".format(dfr.loc[j, (Bcc, "Mild illness (%)")]))
         moderate = float("{:.1f}".format(dfr.loc[j, (Bcc, "Moderate illness (%)")]))
-        severe = float("{:.1f}".format(dfr.loc[j, (Bcc, "Severe illness (%)")]))
+        severe = float("{:.1f}".format(dfr.loc[j, (Bcc, "Severe illness (%)")] + dfr.loc[j, (Bcc, "Critical illness (%)")]))
         critical = float("{:.1f}".format(dfr.loc[j, (Bcc, "Critical illness (%)")]))
+        
+        if severe > 100:
+            
+            severe = float("{:.1f}".format(dfr.loc[j, (Bcc, "Severe illness (%)")]))
         
         if pd.isna(mild) == True and pd.isna(moderate) == True:     #combines mild and moderate and declares nan if both are not reported
             
@@ -410,19 +414,23 @@ def severity_column(df):
             
             mild_moderate = np.nan_to_num(mild, nan = 0.0) + np.nan_to_num(moderate, nan = 0)
             
-        if np.isnan(mild_moderate) == False:                        #the whole concatenation
+        if np.isnan(mild_moderate) == False and mild_moderate != 0:                        #the whole concatenation
             
             dfr.loc[j, ("Severity", "Severity")] = dfr.loc[j, ("Severity", "Severity")] + "Mild/Moderate (" \
                 + str(mild_moderate) + "%)\n"
                 
-        if np.isnan(severe) == False:
+        if np.isnan(severe) == False and severe != 0:
             
             dfr.loc[j, ("Severity", "Severity")] = dfr.loc[j, ("Severity", "Severity")] + "Severe (" \
                 + str(severe) + "%)\n"
-                
-        if np.isnan(critical) == False:
+        
+        if np.isnan(mild_moderate) == False and mild_moderate == 0:
             
-            dfr.loc[j, ("Severity", "Severity")] = dfr.loc[j, ("Severity", "Severity")] + "Critical (" \
+            dfr.loc[j, ("Severity", "Severity")] = "Severe (100%)\n"
+                
+        if np.isnan(critical) == False and critical != 0:
+            
+            dfr.loc[j, ("Severity", "Severity")] = dfr.loc[j, ("Severity", "Severity")] + "Severe: Critical (" \
                 + str(critical) + "%)"
                 
         if dfr.loc[j, ("Severity", "Severity")] == "":              #if none are reported, we declare "NR"
@@ -430,6 +438,7 @@ def severity_column(df):
             dfr.loc[j, ("Severity", "Severity")] = "NR"
             
     return dfr
+
 
 #sums all the percentages that are associated to high flow or invasive or non invasive mechanical ventilation
 
