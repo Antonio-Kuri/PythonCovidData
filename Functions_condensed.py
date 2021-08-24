@@ -194,7 +194,7 @@ def number_patients_cell(df):
     
     N_rand = "N randomized"
     columns_patients = [("Intervention 1", N_rand), ("Intervention 2", N_rand), ("Intervention 3", N_rand), \
-                        ("Intervention 4", N_rand), ("Intervention 5", N_rand), ("Intervention 6", N_rand)]
+                        ("Intervention 4", N_rand), ("Intervention 5", N_rand)]
     
     dfr = df.copy()
     dfr = dfr[columns_patients]

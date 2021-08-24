@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Feb 15 18:21:17 2021
+Created on Wed Jul 21 17:05:48 2021
 
 @author: antonio
+
 """
 
 import pandas as pd            #for creating the spreadsheet
@@ -52,7 +53,7 @@ if type(old_Name_File_Data) != int:
 
 # obtains the data on the "Dichotomous outcome" sheet ready to process
 
-Dich = get_outcomes_ready(DichPrim, Dichotomous, directory_file = nodes_file)
+Dich = get_outcomes_ready_severity(DichPrim, Dichotomous, directory_file = nodes_file)
 Dich.rename(columns = {"Outcome" : "Dichotomous Outcome"}, inplace = True)
 
 
@@ -60,7 +61,7 @@ partial2 = get_partial(RoB, Dich, "Dichotomous Outcome")
 
 if type(old_Name_File_Data) != int:
     
-    OldDich = get_outcomes_ready(OldDichPrim, Dichotomous, directory_file = nodes_file)
+    OldDich = get_outcomes_ready_severity(OldDichPrim, Dichotomous, directory_file = nodes_file)
     OldDich.rename(columns = {"Outcome" : "Dichotomous Outcome"}, inplace = True)
 
 
@@ -68,7 +69,7 @@ if type(old_Name_File_Data) != int:
 
 # obtains the data on the "Continuous outcome" sheet ready to process
 
-Cont = get_outcomes_ready(ContPrim, Continuous, directory_file = nodes_file)
+Cont = get_outcomes_ready_severity(ContPrim, Continuous, directory_file = nodes_file)
 Cont.rename(columns = {"Outcome" : "Continuous Outcome"}, inplace = True)
 
 
@@ -76,11 +77,24 @@ partial1 = get_partial(RoB, Cont, "Continuous Outcome")
 
 if type(old_Name_File_Data) != int:
     
-    OldCont = get_outcomes_ready(OldContPrim, Continuous, directory_file = nodes_file)
+    OldCont = get_outcomes_ready_severity(OldContPrim, Continuous, directory_file = nodes_file)
     OldCont.rename(columns = {"Outcome" : "Continuous Outcome"}, inplace = True)
 
 
     Oldpartial1 = get_partial(RoB, OldCont, "Continuous Outcome")
+
+#disriminate by severity
+partial1 = partial1[partial1["Severe"] == severity]
+
+partial2 = partial2[partial2["Severe"] == severity]
+
+if type(old_Name_File_Data) != int:
+    
+    Oldpartial1 = Oldpartial1[Oldpartial1["Severe"] == severity]
+    
+    Oldpartial2 = Oldpartial2[Oldpartial2["Severe"] == severity]
+    
+
 
 # get the inner join from both dataframes
 
@@ -88,6 +102,7 @@ if type(old_Name_File_Data) != int:
 # get the merged dataframe with Dichotomous and Continuous
 
 inner_join_precursors = literally_a_black_box_that_gets_us_what_we_need_lol(partial1, partial2)
+
 
 if type(old_Name_File_Data) != int:
     # do the same for the old version
@@ -98,9 +113,26 @@ else:
     
     old_inner_join_precursors = 0
 
-#find the difference and the number
+#find the difference
 
-inner_join_precursors = number_of_new_treatments_column(old_inner_join_precursors, inner_join_precursors)
+df = differences_on_new_doc(old_inner_join_precursors, inner_join_precursors)
+
+#count the amount of treatment convinations that are new between gradeing studies
+
+new_treatments_number = df.value_counts().reset_index()
+new_treatments_number.rename(columns = {0 : "# of new trials"}, inplace = True)
+
+# finally gets the dataframe ready to export in an excel, ready for formatting
+
+inner_join_precursors = pd.merge(inner_join_precursors, new_treatments_number, how = 'left', on = ["Treatment 1", "Treatment 2"])
+
+inner_join_precursors["# of new trials"].fillna(value = 0, inplace = True)
+
+#change column of number of new trials of place and group by treatment combination
+
+new_trials_column = inner_join_precursors.pop("# of new trials") 
+inner_join_precursors.insert(2, "# of new trials", new_trials_column) 
+inner_join_precursors.sort_values(by = ["Treatment 1", "Treatment 2"], inplace = True)
 
 correct_column_naming(inner_join_precursors)
 
@@ -109,59 +141,7 @@ inner_join_precursors = convert_bias_from_numbers(inner_join_precursors)
 #insert the empty columns we might need in the future
 insert_empty_columns(inner_join_precursors, 6)
 
-# the same, but for the adverse effects sheet we need. We just repeat a lot of the steps. Might define a function later
-#starts here
-
-adverse_Dich = get_outcomes_ready(DichPrim, Dichotomous, adverse_events = True, directory_file = nodes_file)
-adverse_Dich.rename(columns = {"Outcome" : "Dichotomous Outcome"}, inplace = True)
-
-
-adverse_partial2 = get_partial(RoB, adverse_Dich, "Dichotomous Outcome")
-
-if type(old_Name_File_Data) != int:
-    adverse_OldDich = get_outcomes_ready(OldDichPrim, Dichotomous, adverse_events = True, directory_file = nodes_file)
-    adverse_OldDich.rename(columns = {"Outcome" : "Dichotomous Outcome"}, inplace = True)
-
-
-    adverse_Oldpartial2 = get_partial(RoB, adverse_OldDich, "Dichotomous Outcome")
-
-#continuous
-
-adverse_Cont = get_outcomes_ready(ContPrim, Continuous, adverse_events = True, directory_file = nodes_file)
-adverse_Cont.rename(columns = {"Outcome" : "Continuous Outcome"}, inplace = True)
-
-
-adverse_partial1 = get_partial(RoB, adverse_Cont, "Continuous Outcome")
-
-if type(old_Name_File_Data) != int:
-    adverse_OldCont = get_outcomes_ready(OldContPrim, Continuous, adverse_events = True, directory_file = nodes_file)
-    adverse_OldCont.rename(columns = {"Outcome" : "Continuous Outcome"}, inplace = True)
-
-
-    adverse_Oldpartial1 = get_partial(RoB, adverse_OldCont, "Continuous Outcome")
-
-#merge
-
-adverse_inner_join_precursors = literally_a_black_box_that_gets_us_what_we_need_lol(adverse_partial1, adverse_partial2)
-
-#old merge
-
-if type(old_Name_File_Data) != int:
-    adverse_old_inner_join_precursors = literally_a_black_box_that_gets_us_what_we_need_lol(adverse_Oldpartial1, adverse_Oldpartial2)
-
-else:
-    
-    adverse_old_inner_join_precursors = 0
-    
-adverse_inner_join_precursors = number_of_new_treatments_column(adverse_old_inner_join_precursors, adverse_inner_join_precursors)
-
-correct_column_naming(adverse_inner_join_precursors)
-
-adverse_inner_join_precursors = convert_bias_from_numbers(adverse_inner_join_precursors)
-
-insert_empty_columns(adverse_inner_join_precursors, 6)
-
-#ends here
+#########
 
 #mortality sheet extracted by Dichotomous Outcome = 1
 
@@ -176,7 +156,7 @@ ventilation = gradeing_sheet_parse(inner_join_precursors, "Dichotomous Outcome",
 hospital_admission = gradeing_sheet_parse(inner_join_precursors, "Dichotomous Outcome", 3)
 
 #for adverse events we need to not combine the chloroquines
-adverse_events = gradeing_sheet_parse(adverse_inner_join_precursors, "Dichotomous Outcome", 4)
+adverse_events = gradeing_sheet_parse(inner_join_precursors, "Dichotomous Outcome", 4)
 
 viral_clearance = gradeing_sheet_parse(inner_join_precursors, "Dichotomous Outcome", 5)
 
