@@ -76,11 +76,31 @@ def subdf(df, sheet):                                               #obtener las
         
     if sheet == "Dichotomous outcomes":
         
+        #dfr = dfr
+        
         dfr.drop("Comments", axis = 1, level = 0, inplace = True)
         dfr.drop("Follow-up time (days)", axis = 1, level = 1, inplace = True)
         dfr.drop("Number of events", axis = 1, level = 1, inplace = True)
         
+    if sheet == "Dichotomous outcomes-severity":
+        
+        dfr.drop("Comments", axis = 1, level = 0, inplace = True)
+        dfr.drop("Follow-up time (days)", axis = 1, level = 1, inplace = True)
+        dfr.drop("Number of events", axis = 1, level = 1, inplace = True)
+        dfr.drop("Justfication", axis = 1, level = 1, inplace = True)
+        
     if sheet == "Continuous outcomes":    
+        
+        dfr = dfr
+        dfr.drop("Comments", axis = 1, level = 0, inplace = True)
+        dfr.drop("Follow-up time (days)", axis = 1, level = 1, inplace = True)
+        dfr.drop("Time to symptom resolution or time to clinical improvement criteria", axis = 1, level = 1, inplace = True)
+        dfr.drop("Measure of central tendency", axis = 1, level = 1, inplace = True)
+        dfr.drop("Central tendency", axis = 1, level = 1, inplace = True)
+        dfr.drop("Measure of variability", axis = 1, level = 1, inplace = True)
+        dfr.drop("Variability", axis = 1, level = 1, inplace = True)
+        
+    if sheet == "Continuous outcomes-severity":    
         
         dfr.drop("Comments", axis = 1, level = 0, inplace = True)
         dfr.drop("Follow-up time (days)", axis = 1, level = 1, inplace = True)
@@ -89,6 +109,7 @@ def subdf(df, sheet):                                               #obtener las
         dfr.drop("Central tendency", axis = 1, level = 1, inplace = True)
         dfr.drop("Measure of variability", axis = 1, level = 1, inplace = True)
         dfr.drop("Variability", axis = 1, level = 1, inplace = True)
+        dfr.drop("Justfication", axis = 1, level = 1, inplace = True)
 
     if sheet == "Risk of bias":                                     #saca subdate de risk of bias
         
@@ -110,7 +131,12 @@ def check_spelling_manually_lol(lst):              #a falta de opciones mejores 
         lst[m] = "".join(lst[m].rstrip())
         name =lst[m]
         
-        if name == "hydoxychloroquine":
+            
+        if name == "α-lipoic acid":
+            
+            lst[m] = "alpha lipoic acid"
+            
+        if name == "hydoxychloroquine" or name == "Hydroxychloroquine":
             
             lst[m] = "hydroxychloroquine"
             
@@ -118,7 +144,7 @@ def check_spelling_manually_lol(lst):              #a falta de opciones mejores 
             
             lst[m] = "nanocurcumin"
             
-        if name == "usual care" or name == "control":
+        if name == "usual care" or name == "control" or name == "Placebo" or name == "Standard care":
             
             lst[m] = "standard care/placebo"
             
@@ -134,6 +160,10 @@ def treat_list_grouping(lst, adverse_events = False):              #esta funcion
         lst[m] = "".join(lst[m].rstrip())
         name =lst[m]
         
+        if name == "siltuximab" or name == "tocilizumab":
+            
+            lst[m] = "IL6 receptor antagonists"
+            
         if name == "placebo" or name == "standard care":
             
             lst[m] = "standard care/placebo"
@@ -180,11 +210,11 @@ def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events =
                 
                 aux_str = dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")]
                 
-            elif sheet == "Dichotomous outcomes":
+            elif sheet == "Dichotomous outcomes" or sheet == "Dichotomous outcomes-severity":
                 
                 aux_str = dfr.loc[j, ("Intervention name", "Intervention name")]
             
-            elif sheet == "Continuous outcomes":
+            elif sheet == "Continuous outcomes" or sheet == "Continuous outcomes-severity":
                 
                 aux_str = dfr.loc[j, ("Intervention name", "Intervention name")]
                 #print(aux_str)
@@ -237,11 +267,11 @@ def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events =
                 
                     dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")] = ", ".join(aux_list)
                 
-                elif sheet == "Dichotomous outcomes":
+                elif sheet == "Dichotomous outcomes" or sheet == "Dichotomous outcomes-severity":
                 
                     dfr.loc[j, ("Intervention name", "Intervention name")] = ", ".join(aux_list)
             
-                elif sheet == "Continuous outcomes":
+                elif sheet == "Continuous outcomes" or sheet == "Continuous outcomes-severity":
                 
                     dfr.loc[j, ("Intervention name", "Intervention name")] = ", ".join(aux_list)
 
@@ -358,7 +388,7 @@ def cross_treatments(df):                                           #saca nuevas
                         df.loc[i, (f"Intervention {k}", "N randomized")]       #int(filter(str.isdigit, num1)) + int(filter(str.isdigit, num2))
                         row_to_append.loc[0, "Total N"] = total_patients
                         
-                        if cell1 != "standard care/placebo" and cell2 != "standard care/placebo":
+                        if (cell1 != "standard care/placebo" and cell1 != "placebo/standard care") and (cell2 != "standard care/placebo" and cell2 != "placebo/standard care"):
                             
                             sorting_list = [str(cell1), str(cell2)]
                             sorting_list.sort()
@@ -368,7 +398,7 @@ def cross_treatments(df):                                           #saca nuevas
                             
                         else:
                             
-                            if cell2 == "standard care/placebo":
+                            if cell2 == "standard care/placebo" or cell2 == "placebo/standard care":
                                 
                                 row_to_append.loc[0, "Treatment 1"] = cell1
                                 row_to_append.loc[0, "Treatment 2"] = cell2
@@ -399,7 +429,7 @@ def order_treatments_on_2_columns(df):
         cell2 = df.loc[i, treatments2]
         #num2 = df.loc[i, N2]
         
-        if cell1 != "standard care/placebo" and cell2 != "standard care/placebo":
+        if (cell1 != "standard care/placebo" and cell1 != "placebo/standard care") and (cell2 != "standard care/placebo" and cell2 != "placebo/standard care"):
                             
             sorting_list = [str(cell1), str(cell2)]
             sorting_list.sort()
@@ -409,7 +439,7 @@ def order_treatments_on_2_columns(df):
                             
         else:
                             
-            if cell2 == "standard care/placebo":
+            if cell2 == "standard care/placebo" or cell2 == "placebo/standard care":
                                 
                 dfr.loc[i, treatments1] = cell1
                 dfr.loc[i, treatments2] = cell2         
@@ -426,11 +456,21 @@ def order_treatments_on_2_columns(df):
 #get the merge of RoB and one of the other sheets, COnt or Dich
 def get_partial(dfRoB, dfOut, dich_or_cont):
     
-    partial = pd.merge(dfRoB, dfOut, on = ["Ref ID", dich_or_cont])
-    #partial.drop(["1st Author_y"], axis = 1, inplace = True)
-    #partial.rename(columns = {"1st Author_x" : "1st Author"}, inplace = True)
+    partial_id = pd.merge(dfRoB, dfOut, on = ["Ref ID", dich_or_cont])
+    partial_id.drop(["1st Author_y"], axis = 1, inplace = True)
+    partial_id.rename(columns = {"1st Author_x" : "1st Author"}, inplace = True)
+    
+    partial_author = pd.merge(dfRoB, dfOut, on = ["1st Author", dich_or_cont])
+    partial_author.drop(["Ref ID_y"], axis = 1, inplace = True)
+    partial_author.rename(columns = {"Ref ID_x" : "Ref ID"}, inplace = True)
+    
+    partial = pd.concat([partial_id, partial_author], axis = 0)
+    partial.drop_duplicates(subset = partial.columns[1:].tolist(), inplace = True)
+    partial.drop_duplicates(subset = partial.columns[0:1].tolist() + \
+                            partial.columns[2:].tolist(), inplace = True)
     
     return partial
+
 
 #this function takes both partial merges and vomits the df we need
 def literally_a_black_box_that_gets_us_what_we_need_lol(df1, df2):
@@ -460,8 +500,17 @@ def literally_a_black_box_that_gets_us_what_we_need_lol(df1, df2):
 def get_outcomes_ready(df, sheet, adverse_events = False, directory_file = 0, total_nan = False):
     
     dfr = find_int_in_string(id_order(subdf(clean_treatments_names(cleandf(df, total_nan = False), sheet = sheet, directory_file = directory_file), sheet)), start_column = 3, end_column = 4)
-    dfr.columns = dfr.columns.get_level_values(1)
-    dfr = dfr.groupby(["Ref ID", "Intervention name", "Outcome"], as_index = False)["N analyzed"].sum()
+    dfr.columns = dfr.columns.get_level_values(1) 
+    dfr = dfr.groupby(["Ref ID", "1st Author", "Intervention name", "Outcome"], as_index = False)["N analyzed"].agg(lambda x: x.sum())
+    
+    return dfr
+
+#variation of past function for when we can discriminate by severity
+def get_outcomes_ready_severity(df, sheet, adverse_events = False, directory_file = 0, total_nan = False):
+    
+    dfr = find_int_in_string(id_order(subdf(clean_treatments_names(cleandf(df, total_nan = False), sheet = sheet, directory_file = directory_file), sheet)), start_column = 3, end_column = 5)
+    dfr.columns = dfr.columns.get_level_values(1) 
+    dfr = dfr.groupby(["Ref ID", "1st Author", "Intervention name", "Outcome", "Severe"], as_index = False)["N analyzed"].agg(lambda x: x.sum())
     
     return dfr
           
@@ -484,16 +533,45 @@ def get_risk_of_bias_ready(df, sheet, total_nan = False):                       
 
 def differences_on_new_doc(df_old, df_new):
     
-    df = pd.concat([df_old, df_new])
+    if type(df_old) != int:
+        df = pd.concat([df_old, df_new])
     
-    df = df[["Treatment 1", "Treatment 2", "Ref ID"]]
+        df = df[["Treatment 1", "Treatment 2", "1st Author", "Dichotomous Outcome", "Continuous Outcome"]]
 
-    df = df.drop_duplicates(keep = False)
+        df = df.drop_duplicates(keep = False)
 
-    df = df[["Treatment 1", "Treatment 2"]]
+        df = df[["Treatment 1", "Treatment 2", "Dichotomous Outcome", "Continuous Outcome"]]
+        
+    else:
+        
+        df = df_new.copy()
+        df = df[["Treatment 1", "Treatment 2", "Dichotomous Outcome", "Continuous Outcome"]]
     
     return df
 
+def number_of_new_treatments_column(df_old, df_new):
+    
+    df = differences_on_new_doc(df_old, df_new)
+
+    #count the amount of treatment convinations that are new between gradeing studies
+
+    new_treatments_number = df.value_counts(dropna = False).reset_index()
+    new_treatments_number.rename(columns = {0 : "# of new trials"}, inplace = True)
+
+    # finally gets the dataframe ready to export in an excel, ready for formatting
+
+    inner_join_precursors = pd.merge(df_new, new_treatments_number, how = 'left', on = ["Treatment 1", "Treatment 2", "Dichotomous Outcome", "Continuous Outcome"])
+
+    inner_join_precursors["# of new trials"].fillna(value = 0, inplace = True)
+
+    #change column of number of new trials of place and group by treatment combination
+
+    new_trials_column = inner_join_precursors.pop("# of new trials") 
+    inner_join_precursors.insert(2, "# of new trials", new_trials_column) 
+    inner_join_precursors.sort_values(by = ["Treatment 1", "Treatment 2"], inplace = True)
+    
+    return inner_join_precursors
+    
 #finds integers wrongly captured as strings and makes them integers again
         
 def find_int_in_string(df, start_column = 0, end_column = 1):
@@ -550,6 +628,10 @@ def risk_of_bias_styler(cell):
         color = "yellow"
         
     elif cell == "probably high risk of bias":
+        
+        color = "#ed7d31"
+        
+    elif cell == "either probably low or probably high risk of bias":
         
         color = "#ed7d31"
         
@@ -648,7 +730,7 @@ def gradeing_sheet_parse(df, dichotomous_or_continuous, n_outcome):
     
     for i in range(0, len(dfr.index)):
         #print(dfr.loc[i, "Trial"])
-        if type(dfr.loc[i, "Trial"]) == str:
+        if type(dfr.loc[i, "First author"]) == str:
             
             dfr.loc[i, "Treatment 1"] = np.nan
             dfr.loc[i, "Treatment 2"] = np.nan
@@ -669,6 +751,7 @@ def convert_bias_from_numbers(df):
     dfr[columns] = dfr[columns].mask(dfr == 2, "probably low risk of bias", try_cast = True)
     dfr[columns] = dfr[columns].mask(dfr == 3, "probably high risk of bias", try_cast = True)
     dfr[columns] = dfr[columns].mask(dfr == 4, "high risk of bias", try_cast = True)
+    dfr[columns] = dfr[columns].mask(dfr == 23, "either probably low or probably high risk of bias", try_cast = True)
     
     return dfr
 
@@ -741,6 +824,10 @@ def export_df_to_gradeing_sheet(df, writer, sheet_name = "unamed", name_excel = 
     worksheet.conditional_format(2, 10, rows + 2, 15, {'type': 'text',
                                                        'criteria': 'begins with',
                                                        'value': 'probably high risk of bias',
+                                                       'format': RoB_prob_high_risk})
+    worksheet.conditional_format(2, 10, rows + 2, 15, {'type': 'text',
+                                                       'criteria': 'begins with',
+                                                       'value': 'either probably low or probably high risk of bias',
                                                        'format': RoB_prob_high_risk})
     worksheet.conditional_format(2, 10, rows + 2, 15, {'type': 'text',
                                                        'criteria': 'begins with',
