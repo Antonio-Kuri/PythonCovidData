@@ -184,9 +184,10 @@ def ventilation_cell(df):
     srs.replace("NR", np.nan, inplace = True)
     
     median = srs.median()
-    iqr = srs.quantile(0.75) - srs.quantile(0.25)
-
-    output = pd.Series({"% ventilated" : "{:.1f}".format(median) + " [" + "{:.1f}".format(iqr) + "]"})
+    q1 = srs.quantile(0.25)
+    q3 = srs.quantile(0.75)
+    
+    output = pd.Series({"% ventilated" : "{:.1f}".format(median) + " [" + "{:.1f}".format(q1) + " - " + "{:.1f}".format(q3) + "]"})
     
     return output
 
@@ -204,8 +205,9 @@ def number_patients_cell(df):
     total_patients = dfr.sum(axis = 1)
     
     median = total_patients.median()
-    iqr = total_patients.quantile(0.75) - total_patients.quantile(0.25)
+    q1 = total_patients.quantile(0.25)
+    q3 = total_patients.quantile(0.75)
     
-    output = pd.Series({"Number of patients" : "{:.1f}".format(median) + " [" + "{:.1f}".format(iqr) + "]"})
+    output = pd.Series({"Number of patients" : "{:.1f}".format(median) + " [" + "{:.1f}".format(q1) + " - " + "{:.1f}".format(q3) + "]"})
     
     return output
