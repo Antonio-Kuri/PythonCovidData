@@ -99,10 +99,10 @@ def publication_status_registration_column(df):
 
 #We just sum the total pacients in the different types of treatments using whole columns operations
 
-def number_of_participants_column(df):
+def number_of_participants_column(df, n_trial = 7):
     
     dfr = df.copy()
-    n_trial = 7
+    n_trial = n_trial
     
     dfr[("Number of\nparticipants", "Number of\nparticipants")] = int(0)
     
@@ -518,10 +518,10 @@ def percentage_mechanical_ventilation_column(df):
 
 #Concatenation of the columns "intervention n name" with the names of the treatments, with line breaks
 
-def treatments_column(df, name = ""):
+def treatments_column(df, name = "", n_trial = 7):
     
     dfr = df.copy()
-    n_trial = 7
+    n_trial = n_trial
     
     col_name = "Treatments (dose and duration)"
     
@@ -668,6 +668,83 @@ def precursor_column_outcomes(df, remove_redundant = True):
         dfr.drop(["Dichotomous Outcome", "Continuous Outcome"], level = 0, inplace = True, axis = 1)
             
     return dfr
+
+#same function but for blood files
+
+def precursor_column_outcomes_blood(df, remove_redundant = True):
+    
+    dfr = df.copy()
+    
+    new_column = "Outcomes"
+    dfr[(new_column, new_column)] = ""
+    
+    for j in range(0, len(dfr.index)):
+        
+        dichotomous = dfr.loc[j, ("Dichotomous Outcome", "Dichotomous Outcome")]
+        continuous = dfr.loc[j, ("Continuous Outcome", "Continuous Outcome")]
+        
+        if dichotomous == 1:
+            
+            dfr.loc[j, (new_column, new_column)] = "Mortality"
+            
+        elif dichotomous == 2:
+            
+            dfr.loc[j, (new_column, new_column)] = "Mechanical ventilation"
+        
+        elif dichotomous == 3:
+            
+            dfr.loc[j, (new_column, new_column)] = "Admission to hospital"
+        
+        elif dichotomous == 4:
+            
+            dfr.loc[j, (new_column, new_column)] = "Adverse effects leading to discontinuation"
+            
+        elif dichotomous == 5:
+            
+            dfr.loc[j, (new_column, new_column)] = "Viral clearance"
+            
+        elif dichotomous == 6:
+            
+            dfr.loc[j, (new_column, new_column)] = "TRALI"
+            
+        elif dichotomous == 7:
+            
+            dfr.loc[j, (new_column, new_column)] = "TACO"
+            
+        elif dichotomous == 8:
+            
+            dfr.loc[j, (new_column, new_column)] = "Allergic reactions"
+            
+        if continuous == 1:
+            
+            dfr.loc[j, (new_column, new_column)] = "Duration of hospitalization"
+            
+        elif continuous == 2:
+            
+            dfr.loc[j, (new_column, new_column)] = "ICU length of stay"
+            
+        elif continuous == 3:
+            
+            dfr.loc[j, (new_column, new_column)] = "Ventilator-free days"
+            
+        elif continuous == 4:
+            
+            dfr.loc[j, (new_column, new_column)] = "Duration of ventilation"
+            
+        elif continuous == 5:
+            
+            dfr.loc[j, (new_column, new_column)] = "Time to symptom/clinical improvement"
+
+        elif continuous == 6:
+            
+            dfr.loc[j, (new_column, new_column)] = "Time to to viral clearance"
+            
+    if remove_redundant == True:                #removes the columns we dont need anymore
+        
+        dfr.drop(["Dichotomous Outcome", "Continuous Outcome"], level = 0, inplace = True, axis = 1)
+            
+    return dfr
+
 
 #find a list of heights in pixels where each list index is the row index of the dataframe
 def set_row_heights(df):
