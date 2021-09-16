@@ -194,10 +194,22 @@ def ventilation_cell(df):
 def number_patients_cell(df):
     
     N_rand = "N randomized"
-    columns_patients = [("Intervention 1", N_rand), ("Intervention 2", N_rand), ("Intervention 3", N_rand), \
-                        ("Intervention 4", N_rand), ("Intervention 5", N_rand)]
+
+    #columns_patients = [("Intervention 1", N_rand), ("Intervention 2", N_rand), ("Intervention 3", N_rand), \
+    #                    ("Intervention 4", N_rand), ("Intervention 5", N_rand)]
     
     dfr = df.copy()
+    
+    columns_patients = []
+    
+    for n in range(1, 20):
+        print(n)
+        try:
+            dfr[("Intervention {}".format(n), N_rand)]
+            columns_patients.append(("Intervention {}".format(n), N_rand))
+        except KeyError:
+            break
+    
     dfr = dfr[columns_patients]
     
     dfr.replace("NR", np.nan, inplace = True)

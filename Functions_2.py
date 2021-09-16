@@ -102,11 +102,17 @@ def publication_status_registration_column(df):
 def number_of_participants_column(df, n_trial = 7):
     
     dfr = df.copy()
-    n_trial = n_trial
+    #n_trial = n_trial
+    for n in range(1, 20):
+            #print(n)
+        try:
+            dfr["Intervention {}".format(n)]
+        except KeyError:
+            break
     
     dfr[("Number of\nparticipants", "Number of\nparticipants")] = int(0)
     
-    for i in range(1, n_trial):
+    for i in range(1, n):
         
         dfr[(f"Intervention {i}", "N randomized")].replace("NR", - np.inf, inplace = True)
         dfr[(f"Intervention {i}", "N randomized")].replace("NA", - np.inf, inplace = True)
@@ -521,7 +527,14 @@ def percentage_mechanical_ventilation_column(df):
 def treatments_column(df, name = "", n_trial = 7):
     
     dfr = df.copy()
-    n_trial = n_trial
+    #n_trial = n_trial
+    
+    for n in range(1, 20):
+            #print(n)
+        try:
+            dfr["Intervention {}".format(n)]
+        except KeyError:
+            break
     
     col_name = "Treatments (dose and duration)"
     
@@ -534,39 +547,42 @@ def treatments_column(df, name = "", n_trial = 7):
     
     if (year_nma < 2021) or (year_nma == 2021 and (month_nma < 4 and day_nma < 11)):
         
-        for i in range(1, n_trial):
+        for i in range(1, n):
             
             for j in range(0, len(dfr.index)):
             
-                if pd.isna(dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")]) == False:
+                if pd.isna(dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")]) == False\
+                    and dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")] != "NR":
             
                     dfr.loc[j, (col_name, col_name)] = dfr.loc[j, (col_name, col_name)] + \
                     str(dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")]) + "\n"
                     
     elif year_nma == 2021 and ((month_nma < 4 and day_nma < 13) and (month_nma > 2 and day_nma > 9)):
         
-        for i in range(1, n_trial):
+        for i in range(1, n):
         
             for j in range(0, len(dfr.index)):
             
-                if pd.isna(dfr.loc[j, (f"Intervention {i}", f"Intervention {i} description (dose, duration) revised")]) == False:
+                if pd.isna(dfr.loc[j, (f"Intervention {i}", f"Intervention {i} description (dose, duration) revised")]) == False\
+                    and dfr.loc[j, (f"Intervention {i}", f"Intervention {i} description (dose, duration) revised")] != "NR":
             
                     dfr.loc[j, (col_name, col_name)] = dfr.loc[j, (col_name, col_name)] + \
                     str(dfr.loc[j, (f"Intervention {i}", f"Intervention {i} description (dose, duration) revised")]) + "\n"
                     
     elif year_nma == 2021 and ((month_nma < 4 and day_nma < 17) and (month_nma > 2 and day_nma > 15)):
         
-        for i in range(1, n_trial):
+        for i in range(1, n):
         
             for j in range(0, len(dfr.index)):
             
-                if pd.isna(dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")]) == False:
+                if pd.isna(dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")]) == False\
+                    and dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")] != "NR":
             
                     dfr.loc[j, (col_name, col_name)] = dfr.loc[j, (col_name, col_name)] + \
                     str(dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")]) + "\n"
     else:
         
-        for i in range(1, n_trial):
+        for i in range(1, n):
             
             for j in range(0, len(dfr.index)):
             
@@ -581,14 +597,16 @@ def treatments_column(df, name = "", n_trial = 7):
                     
                     for treat, desc in zip(treatments_names, descriptions):
                         
-                        if desc == "nan":
-                            
-                            dfr.loc[j, (col_name, col_name)] = dfr.loc[j, (col_name, col_name)] + treat
-                            
-                        else:
+                        if treat != "NR":
                         
-                            dfr.loc[j, (col_name, col_name)] = dfr.loc[j, (col_name, col_name)] + \
-                            treat + " (" + desc + ") "
+                            if desc == "nan" or desc == "NR":
+                            
+                                dfr.loc[j, (col_name, col_name)] = dfr.loc[j, (col_name, col_name)] + treat
+                            
+                            else:
+                        
+                                dfr.loc[j, (col_name, col_name)] = dfr.loc[j, (col_name, col_name)] + \
+                                    treat + " (" + desc + ") "
 
                     dfr.loc[j, (col_name, col_name)] = dfr.loc[j, (col_name, col_name)] + "\n"
             

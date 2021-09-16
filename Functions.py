@@ -55,18 +55,27 @@ def subdf(df, sheet):                                               #obtener las
                                                                     #usar despues de cleandf necesariamente
     name_columns =["Ref ID", "1st Author"]
     dfr = df.copy()
-    n_trial = 7
+    #n_trial = 7
     n_risk = 7
     
     if sheet == "Trial characteristics":                            #Sacar subdataframe the trial  characteristics
         
-        for i in range(1, n_trial):
+        for n in range(1, 20):
+            #print(n)
+            try:
+                dfr["Intervention {}".format(n)]
+                name_columns.append(f"Intervention {n}")
+
+            except KeyError:
+                break
+    
+        #for i in range(1, n):
             
-            name_columns.append(f"Intervention {i}")
+        #    name_columns.append(f"Intervention {i}")
         
         dfr = dfr[name_columns] 
         
-        for i in range(1, n_trial):
+        for i in range(1, n):
             
             dfr.drop(f"Intervention {i} description (dose, duration)", axis = 1, level = 1, inplace = True)
             
@@ -136,8 +145,13 @@ def check_spelling_manually_lol(lst):              #a falta de opciones mejores 
             
             lst[m] = "alpha lipoic acid"
             
-        if name == "hydoxychloroquine" or name == "Hydroxychloroquine":
+        #if name == "hydoxychloroquine" or name == "Hydroxychloroquine" or name == "(hydroxy)chloroquine":
+        if "y)chloroquine" in name:
+            #print(name)
+            lst[m] = "hydroxychloroquine"
             
+        if "ychloroquine" in name:
+            #print(name)
             lst[m] = "hydroxychloroquine"
             
         if name == "nano-curcumin":
@@ -200,9 +214,19 @@ def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events =
                                                                     #esta funcion limpia, con ayuda de treat_list_grouping, 
                                                                     #los nombres de los tratamientos, ignorando dias y dosis y ordenando los elementos
     dfr=df.copy()
-    n_trial = 7
+    #n_trial = 7
     
-    for i in range(1, n_trial):                                     #Check all cells of names
+    for n in range(1, 20):
+            #print(n)
+        try:
+            dfr["Intervention {}".format(n)]
+        except KeyError:
+            break
+        
+    if n == 1:
+        n=2
+    
+    for i in range(1, n):                                     #Check all cells of names
         
         for j in range(0, len(dfr.index)):
                                                                     #revisamos una celda
@@ -297,9 +321,17 @@ def treatmentsv2(df):                                               #funcion aux
     
     dfr = df.copy()
     srs = pd.DataFrame()
-    n_trial = 7
+    #n_trial = 7
     
-    for i in range(1, n_trial):                                     
+    for n in range(1, 20):
+            #print(n)
+        try:
+            aux=dfr["Intervention {}".format(n)]
+        except KeyError:
+            break
+
+    
+    for i in range(1, n):                                     
         
         aux = dfr.loc[:, f"Intervention {i}"]
         aux = aux.rename(columns = { f"Intervention {i} name" : "name", "N randomized" : "N"})
@@ -315,9 +347,16 @@ def treatmentsv2(df):                                               #funcion aux
 def duplicated_in_study(df, sheet = "Trial characteristics"):                                        #Despues de limpiar todo, algunas columnas se repiten dado que quitamos dosis y dias
     
     dfr = df.copy()
-    n_trial = 7
+    #n_trial = 7
+    
+    for n in range(1, 20):
+            #print(n)
+        try:
+            dfr["Intervention {}".format(n)]
+        except KeyError:
+            break
         
-    for i in range(1, n_trial):
+    for i in range(1, n):
         
         dfr[(f"Intervention {i}", f"Intervention {i} name")].replace("NR", np.nan, inplace = True)
     
@@ -325,7 +364,7 @@ def duplicated_in_study(df, sheet = "Trial characteristics"):                   
         
         aux_list = []
         
-        for i in range(1, n_trial):                                 #checar si se repiten los nombres
+        for i in range(1, n):                                 #checar si se repiten los nombres
             
             cell = dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")]
             
@@ -350,18 +389,25 @@ def cross_treatments(df):                                           #saca nuevas
     
     the_columns = ["Treatment 1", "Treatment 2", "Ref ID", "1st Author", "Total N"]
     dfr = pd.DataFrame(columns = the_columns)
-    n_trial = 7
-    
+    #n_trial = 7
+
+    for n in range(1, 20):
+            #print(n)
+        try:
+            dfr["Intervention {}".format(n)]
+        except KeyError:
+            break
+        
     for i in range(0, len(df.index)):
                 
-        for j in range(1, n_trial):
+        for j in range(1, n):
             
             cell1 = df.loc[i, (f"Intervention {j}", f"Intervention {j} name")]
             num1 = df.loc[i, (f"Intervention {j}", "N randomized")]
             
             if pd.isna(cell1) == False:
                 
-                for k in range(j+1, n_trial):
+                for k in range(j+1, n):
                     
                     cell2 = df.loc[i, (f"Intervention {k}", f"Intervention {k} name")]
                     num2 = df.loc[i, (f"Intervention {k}", "N randomized")]

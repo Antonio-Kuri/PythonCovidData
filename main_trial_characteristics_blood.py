@@ -35,13 +35,21 @@ Precursor_2 = id_order(cleandf(TrialsPrim2))
 Precursor_1 = clean_trial_name(Precursor_1)
 
 #bandaid to get integers from the n randomized columns
-Precursor_1 = find_int_in_string(Precursor_1, start_column = 45, end_column = 45)
-Precursor_1 = find_int_in_string(Precursor_1, start_column = 48, end_column = 48)
-Precursor_1 = find_int_in_string(Precursor_1, start_column = 51, end_column = 51)
-Precursor_1 = find_int_in_string(Precursor_1, start_column = 54, end_column = 54)
-Precursor_1 = find_int_in_string(Precursor_1, start_column = 57, end_column = 57)
-#Precursor_1 = find_int_in_string(Precursor_1, start_column = 60, end_column = 60)
+# Precursor_1 = find_int_in_string(Precursor_1, start_column = 45, end_column = 45)
+# Precursor_1 = find_int_in_string(Precursor_1, start_column = 48, end_column = 48)
+# Precursor_1 = find_int_in_string(Precursor_1, start_column = 51, end_column = 51)
+# Precursor_1 = find_int_in_string(Precursor_1, start_column = 54, end_column = 54)
+# Precursor_1 = find_int_in_string(Precursor_1, start_column = 57, end_column = 57)
+# #Precursor_1 = find_int_in_string(Precursor_1, start_column = 60, end_column = 60)
 
+for n in range(1, 20):
+            #print(n)
+    try:
+        Precursor_1["Intervention {}".format(n)]
+        Precursor_1 = find_int_in_string(Precursor_1, start_column = 42 + 3*n, end_column = 42 +3*n)
+        
+    except KeyError:
+        break
 
 #Next we get the subdataframe, dropping all the columns we aren't going to use, for easier readability
 
