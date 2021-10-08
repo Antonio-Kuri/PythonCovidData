@@ -27,7 +27,7 @@ def cleandf(df, total_nan = False):                                             
                 
                 dfr.iloc[i,j] = ' '.join(dfr.iloc[i,j].split())     #Esto limpia todas los strings de espacios de sobra y "\n"
                 
-                if i < 3 and len(dfr.iloc[i,j]) > max_title:                                           #revisando las primeras filas, quitamos los titulos demasiado largos
+                if i < 3 and len(dfr.iloc[i,j]) > max_title:        #revisando las primeras filas, quitamos los titulos demasiado largos
 
                     dfr.iloc[i,j] = np.nan
                 

@@ -818,3 +818,26 @@ def stronger_left_join_trial_characteristics(df1, df2):
     left_join = left_join.replace("", "NR")
     
     return left_join
+
+#n is the number of intervention columns there is minus 1
+def filter_treatment_pair(df, filter_treat, n):
+    
+    if bool(filter_treat):
+        Precursor_1_aux = df.copy()[0:0]
+        #Precursor_1_aux = Precursor_1[0:0]
+
+        for i in range(1, n):
+
+            aux_df = df[df[(f"Intervention {i}", f"Intervention {i} name")] == filter_treat[0]].copy()
+        
+            for j in range(1, n):
+            
+                aux_df_2 = aux_df[aux_df[(f"Intervention {j}", f"Intervention {j} name")] == filter_treat[1]]
+
+                Precursor_1_aux = Precursor_1_aux.append(aux_df_2, ignore_index = True)
+    
+        return Precursor_1_aux
+        
+    else:
+        
+        return df
