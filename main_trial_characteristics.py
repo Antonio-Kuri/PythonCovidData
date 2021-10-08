@@ -51,6 +51,9 @@ for n in range(1, 20):
     except KeyError:
         break
 
+#n is the number of intervention columns there is minus 1    
+Precursor_1 = filter_treatment_pair(Precursor_1, filter_treat, n)
+
 #Next we get the subdataframe, dropping all the columns we aren't going to use, for easier readability
 
 PSc = "Publication/Study characteristics"

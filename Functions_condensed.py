@@ -203,7 +203,7 @@ def number_patients_cell(df):
     columns_patients = []
     
     for n in range(1, 20):
-        print(n)
+        #print(n)
         try:
             dfr[("Intervention {}".format(n), N_rand)]
             columns_patients.append(("Intervention {}".format(n), N_rand))
