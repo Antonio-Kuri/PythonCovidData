@@ -21,8 +21,8 @@ severity = 1
 #Nodes 
 #Replace with ( nodes_name = 0 ) if the coded grouping is desired to be used, instead of the file
 #nodes_name = 0
-nodes_name = "Table of nodes (22-07-2021).xlsx"
+nodes_name = "Table of nodes (10-09-2021).xlsx"
 
 #trial characteristics table
 #filter by treatment pair
-filter_treat = ["hydroxychloroquine", "placebo"]
+filter_treat = ["IL6 receptor antagonists", "standard care/placebo"]
