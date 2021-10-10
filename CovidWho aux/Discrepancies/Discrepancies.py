@@ -9,45 +9,16 @@ Created on Wed Oct  6 19:53:00 2021
 import pandas as pd            #for creating the spreadsheet
 import numpy as np             #for nan
 
-def cleandf(df, total_nan = False):                                                    #funcion para dejar la base de datos limpia y con los indices de columnas adecuados
-    
-    dfr = df.copy()
-    max_title = 200                                                 #Para quitar los encabezados con descripciones largas
-    
-    for i in range(0, len(dfr.index)):                              #Esto limpia de espacios y enters todo el dataframe
-        
-        for j in range(0, len(dfr.columns)):               
-            
-            if type(dfr.iloc[i,j]) == str:                  
-                
-                dfr.iloc[i,j] = ' '.join(dfr.iloc[i,j].split())     #Esto limpia todas los strings de espacios de sobra y "\n"
-                
-                if i < 3 and len(dfr.iloc[i,j]) > max_title:        #revisando las primeras filas, quitamos los titulos demasiado largos
+import sys
+sys.path.append("../..")
 
-                    dfr.iloc[i,j] = np.nan
-                
-    aux_dfr = dfr.iloc[:2,:]                                        #Usamos un dataframe auxiliar para limpiar los nombres de las columnas
-    
-    aux_dfr = aux_dfr.fillna(method = "ffill", axis = 1)
-    aux_dfr = aux_dfr.fillna(method = "ffill", axis = 0)
-    dfr = dfr.drop([0, 1, 2])                                       #y borramos las filas de los encabezados del excel para tener algo mas limpio
-    
-    mult_index = aux_dfr.T                                          #Transpuesta
-    dfr.columns = pd.MultiIndex.from_frame(mult_index)              #reindexea con multiindex de 2 niveles      
-    
-    if total_nan == True:
-        
-        dfr = dfr.replace("NR", np.nan)                                 #reemplaza nr con valores nan
-    
-    dfr = dfr.loc[:,~dfr.columns.duplicated()]                      #Comentar esto correctamente, creo que quita los duplicados de nombres de las columnas
-    dfr.reset_index(inplace = True, drop = True)
-    dfr = dfr.sort_index()
-    
-    return dfr
+from Functions import cleandf
 
+#####name of inputs
 Name_File_Data = "COVID19 NMA Therapy Data (03-09-2021) (2)(1).xlsx"
 log_File_Data = "IncludedLog.xlsx"
 
+####import and basic cleaning
 Prim_NMA = pd.read_excel(Name_File_Data, header = None, sheet_name = "Trial characteristics")
 Prim_log = pd.read_excel(log_File_Data, header = [0])
 
@@ -89,6 +60,7 @@ def list_string_containment(l1,l2):
             out.append(y)
     return out
 
+####### "empty" vars for tests, look at what is getting matched
 #NMA_empty = NMA_df[0:0]
 #Log_empty = Log_df[0:0]
 
@@ -149,6 +121,7 @@ NMA_df.columns = NMA_df.columns.get_level_values(1)
 NMA_aux=NMA_df[["Ref ID","1st Author","Trial registration"]]
 Log_aux=Log_df[["Study ID","First Author","Trial Registry Number"]]
 
+##### export
 name_excel = "Discrepancies between (" + Name_File_Data + ") and (" + log_File_Data + ").xlsx"
 
 writer = pd.ExcelWriter(name_excel, engine='xlsxwriter')

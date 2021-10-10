@@ -10,7 +10,7 @@ import pandas as pd            #for creating the spreadsheet
 import numpy as np             #for nan
 import re as re                #for sub
 
-from Functions import cleandf, id_order, find_int_in_string
+from Functions import cleandf, id_order, find_int_in_string, clean_treatments_names
 
 from Functions_2 import *
 
@@ -21,9 +21,15 @@ from inputs_gradeing import *
 TrialsPrim = pd.read_excel(Name_File_Data, header = None, sheet_name = Trial_Data)
 TrialsPrim2 = pd.read_excel(Name_File_Data, header = None, sheet_name = Trial_Data2)
 
+if nodes_name == 0:
+    nodes_file = 0
+    
+else:
+    nodes_file = pd.read_excel(nodes_name)
+
 #gets the dataframes cleaned and re-indexed, this functions are found in "Functions.py"
 
-Precursor_1 = id_order(cleandf(TrialsPrim))
+Precursor_1 = id_order(clean_treatments_names(cleandf(TrialsPrim),directory_file=nodes_file))
 
 Precursor_2 = id_order(cleandf(TrialsPrim2))
 
@@ -34,13 +40,7 @@ Precursor_2 = id_order(cleandf(TrialsPrim2))
 
 Precursor_1 = clean_trial_name(Precursor_1)
 
-#bandaid to get integers from the n randomized columns
-# Precursor_1 = find_int_in_string(Precursor_1, start_column = 45, end_column = 45)
-# Precursor_1 = find_int_in_string(Precursor_1, start_column = 48, end_column = 48)
-# Precursor_1 = find_int_in_string(Precursor_1, start_column = 51, end_column = 51)
-# Precursor_1 = find_int_in_string(Precursor_1, start_column = 54, end_column = 54)
-# Precursor_1 = find_int_in_string(Precursor_1, start_column = 57, end_column = 57)
-# Precursor_1 = find_int_in_string(Precursor_1, start_column = 60, end_column = 60)
+#bandaid 2 to get integers from the n randomized columns
 
 for n in range(1, 20):
             #print(n)
@@ -134,7 +134,27 @@ heights = set_row_heights(inner_join_precursors)
 start_row = 2
 start_column = 2
 
-name_excel = "COVID19 NMA - Table of study characteristics - Drug (created from " + Name_File_Data + ").xlsx"
+if bool(filter_treat):
+    
+    if filter_treat[0] == "standard care/placebo":
+        
+        filter_treat[0] = "placebo"
+        
+    if filter_treat[1] == "standard care/placebo":
+        
+        filter_treat[1] = "placebo"
+        
+    if filter_treat[0] == "ACEi/ARB":
+        
+        filter_treat[0] = "ACEi-ARB"
+        
+    if filter_treat[1] == "ACEi/ARB":
+        
+        filter_treat[1] = "ACEi-ARB"
+    
+    name_excel = "COVID19 NMA - Table of study characteristics - Drug, filtered for " + filter_treat[0] + " and " + filter_treat[1] + " (created from " + Name_File_Data + ").xlsx"
+else:
+    name_excel = "COVID19 NMA - Table of study characteristics - Drug (created from " + Name_File_Data + ").xlsx"
 
 writer = pd.ExcelWriter(name_excel, engine='xlsxwriter')
 
