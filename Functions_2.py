@@ -62,6 +62,7 @@ def publication_status_registration_column(df):
     for i in range(0, len(dfr.index)):
         
         aux_str = dfr.loc[i, ("Publication/Study characteristics", "Publication status")]
+        aux_str = int(aux_str)
         aux_str = str(aux_str).replace(",", "")
         aux_lst = [int(s) for s in aux_str.split() if s.isdigit()]
         aux_str = min(aux_lst)

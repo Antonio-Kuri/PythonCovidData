@@ -39,6 +39,7 @@ Precursor_2 = id_order(cleandf(TrialsPrim2))
 #We do so extracting the data into different columns with the correct cell format we desire, one column at a time
 
 Precursor_1 = clean_trial_name(Precursor_1)
+Precursor_1 = find_int_in_string(Precursor_1, start_column = 5, end_column = 6)
 
 #bandaid 2 to get integers from the n randomized columns
 
