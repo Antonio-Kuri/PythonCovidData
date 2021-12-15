@@ -62,10 +62,15 @@ def publication_status_registration_column(df):
     for i in range(0, len(dfr.index)):
         
         aux_str = dfr.loc[i, ("Publication/Study characteristics", "Publication status")]
-        aux_str = int(aux_str)
+        #aux_str = int(aux_str)
         aux_str = str(aux_str).replace(",", "")
         aux_lst = [int(s) for s in aux_str.split() if s.isdigit()]
-        aux_str = min(aux_lst)
+        if aux_lst == []:
+            aux_str == str
+            
+        else:
+            aux_str = min(aux_lst)
+        
         
         if aux_str == 1:
             
@@ -540,9 +545,9 @@ def treatments_column(df, name = "", n_trial = 7):
     col_name = "Treatments (dose and duration)"
     
     date_list = re.findall(r'\d+(?:,\d+)?', name)
-    day_nma = int(date_list[1])
-    month_nma = int(date_list[2])
-    year_nma = int(date_list[3])
+    day_nma = int(date_list[-3])
+    month_nma = int(date_list[-2])
+    year_nma = int(date_list[-1])
     
     dfr[(col_name, col_name)] = ""
     
@@ -821,24 +826,100 @@ def stronger_left_join_trial_characteristics(df1, df2):
     return left_join
 
 #n is the number of intervention columns there is minus 1
-def filter_treatment_pair(df, filter_treat, n):
+def filter_treatment_pair(df, filter_treat, n, intersection = True):
     
     if bool(filter_treat):
-        Precursor_1_aux = df.copy()[0:0]
-        #Precursor_1_aux = Precursor_1[0:0]
-
-        for i in range(1, n):
-
-            aux_df = df[df[(f"Intervention {i}", f"Intervention {i} name")] == filter_treat[0]].copy()
         
-            for j in range(1, n):
-            
-                aux_df_2 = aux_df[aux_df[(f"Intervention {j}", f"Intervention {j} name")] == filter_treat[1]]
+        Precursor_1_aux = df.copy()[0:0]
+        
+        if intersection == True:
 
-                Precursor_1_aux = Precursor_1_aux.append(aux_df_2, ignore_index = True)
-    
+            for i in range(1, n):
+            
+                treat1 = filter_treat[0]
+                aux_df = df[df[("Intervention node", f"Intervention {i} name node")] == treat1]
+        
+                for j in range(1, n):
+                
+                    treat2 = filter_treat[1]
+                    aux_df_2 = aux_df[aux_df[("Intervention node", f"Intervention {j} name node")] == treat2]
+
+                    Precursor_1_aux = Precursor_1_aux.append(aux_df_2, ignore_index = True)
+        
+        else:
+            
+            for i in range(1,n):
+                
+                treat1 = filter_treat[0]
+                treat2 = filter_treat[1]
+                aux_df = df[(df[("Intervention node", f"Intervention {i} name node")] == treat1) | \
+                            (df[("Intervention node", f"Intervention {i} name node")] == treat2)]
+                    
+                Precursor_1_aux = Precursor_1_aux.append(aux_df, ignore_index = True)
+        
         return Precursor_1_aux
         
     else:
         
         return df
+    
+#filter treatments by nodes but without replacing the displayed entry
+
+def clean_node_treatments_names(df, filter_treat, directory_file = 0):             
+                                                                    #esta funcion limpia, con ayuda de treat_list_grouping, 
+                                                                    #los nombres de los tratamientos, ignorando dias y dosis y ordenando los elementos
+    dfr=df.copy()
+    #n_trial = 7
+    
+    for n in range(1, 20):
+            #print(n)
+        try:
+            dfr["Intervention {}".format(n)]
+        except KeyError:
+            break
+        
+    if n == 1:
+        n=2
+    
+    for i in range(1, n):                                     #Check all cells of names
+        
+        dfr[("Intervention node", f"Intervention {i} name node")]= ""
+        
+        for j in range(0, len(dfr.index)):
+                                                                    #revisamos una celd
+            aux_str = dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")]
+                
+            if type(aux_str) == str:                                #vemos solo los strings
+                    
+                aux_str = re.sub(r"\([^)]*\)", "", aux_str)         #esto quita los parentesis
+                aux_str = aux_str.strip()
+                aux_list = aux_str.split(", ")
+                                                                                #aqui va el combinador para entender distintas categorias como una, 
+                #aux_list = check_spelling_manually_lol(aux_list)                #como placebo y standard care, en la forma de placebo/standard care
+                
+                if type(directory_file) != int:
+                    
+                    aux_list.sort()
+                    
+                    aux_str = ", ".join(aux_list)
+                    
+                    index_node_list = directory_file.loc[directory_file.isin([aux_str]).any(axis=1)].index.tolist()
+                        
+                    if len(index_node_list) == 0:
+
+                        aux_str = aux_str
+                            
+                    else:
+                            
+                        index_node = index_node_list[0]
+                        aux_str = directory_file.loc[index_node,"Node"]
+                            
+                    aux_list = aux_str.split(", ")
+                    
+                #aux_list = treat_list_grouping(aux_list, adverse_events)
+            
+                aux_list.sort()                 #reconstruye el string
+
+                dfr.loc[j, ("Intervention node", f"Intervention {i} name node")] = ", ".join(aux_list)
+
+    return dfr

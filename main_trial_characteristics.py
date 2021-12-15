@@ -10,7 +10,7 @@ import pandas as pd            #for creating the spreadsheet
 import numpy as np             #for nan
 import re as re                #for sub
 
-from Functions import cleandf, id_order, find_int_in_string, clean_treatments_names
+from Functions import cleandf, id_order, find_int_in_string#, clean_treatments_names
 
 from Functions_2 import *
 
@@ -29,7 +29,7 @@ else:
 
 #gets the dataframes cleaned and re-indexed, this functions are found in "Functions.py"
 
-Precursor_1 = id_order(clean_treatments_names(cleandf(TrialsPrim),directory_file=nodes_file))
+Precursor_1 = id_order(clean_node_treatments_names(cleandf(TrialsPrim),filter_treat,directory_file=nodes_file))
 
 Precursor_2 = id_order(cleandf(TrialsPrim2))
 
@@ -39,7 +39,7 @@ Precursor_2 = id_order(cleandf(TrialsPrim2))
 #We do so extracting the data into different columns with the correct cell format we desire, one column at a time
 
 Precursor_1 = clean_trial_name(Precursor_1)
-Precursor_1 = find_int_in_string(Precursor_1, start_column = 5, end_column = 6)
+#Precursor_1_aux = find_int_in_string(Precursor_1, start_column = 5, end_column = 6)
 
 #bandaid 2 to get integers from the n randomized columns
 
@@ -47,13 +47,17 @@ for n in range(1, 20):
             #print(n)
     try:
         Precursor_1["Intervention {}".format(n)]
-        Precursor_1 = find_int_in_string(Precursor_1, start_column = 42 + 3*n, end_column = 42 +3*n)
+        Precursor_1 = find_int_in_string(Precursor_1, start_column = 33 + 3*n, end_column = 33 +3*n)
         
     except KeyError:
         break
+    
+    # except IndexError:
+    #     break
 
 #n is the number of intervention columns there is minus 1    
-Precursor_1 = filter_treatment_pair(Precursor_1, filter_treat, n)
+intersection = False
+Precursor_1 = filter_treatment_pair(Precursor_1, filter_treat, n, intersection = intersection)
 
 #Next we get the subdataframe, dropping all the columns we aren't going to use, for easier readability
 
@@ -76,6 +80,9 @@ Precursor_1 = percentage_male_column(Precursor_1)
 Precursor_1 = comorbidities_column(Precursor_1)
 
 Precursor_1 = type_of_care_column(Precursor_1)
+
+#find string in severity columns
+Precursor_1 = find_int_in_string(Precursor_1, start_column = 25, end_column = 28)
 
 Precursor_1 = severity_column(Precursor_1)
 
