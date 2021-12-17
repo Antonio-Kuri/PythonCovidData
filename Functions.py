@@ -145,10 +145,14 @@ def check_spelling_manually_lol(lst):              #a falta de opciones mejores 
             
             lst[m] = "alpha lipoic acid"
             
+        if name == "tocfacitnib":
+            
+            lst[m] = "tofacitinib"
+            
         #if name == "hydoxychloroquine" or name == "Hydroxychloroquine" or name == "(hydroxy)chloroquine":
-        if "y)chloroquine" in name:
-            #print(name)
-            lst[m] = "hydroxychloroquine"
+        # if "y)chloroquine" in name:
+        #     #print(name)
+        #     lst[m] = "hydroxychloroquine"
             
         if "ychloroquine" in name:
             #print(name)
@@ -191,6 +195,12 @@ def treat_list_grouping(lst, adverse_events = False):              #esta funcion
             if name == "chloroquine":
             
                 lst[m] = "hydroxychloroquine"
+                
+        if adverse_events == True:                                #Para la pestaña de efectos adversos necesitamos dejar separado las cloroquinas       
+            
+            if name == "barticitinib" or name == "ruxolitinib" or name =="tofacitinib":
+            
+                lst[m] = "JAKi"
             
         if "nterferon" in name:
             
@@ -215,7 +225,6 @@ def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events =
                                                                     #los nombres de los tratamientos, ignorando dias y dosis y ordenando los elementos
     dfr=df.copy()
     #n_trial = 7
-    
     for n in range(1, 20):
             #print(n)
         try:
@@ -268,6 +277,12 @@ def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events =
                             
                             aux_str = aux_str
                             
+                    # if adverse_events == True:                                #Para la pestaña de efectos adversos necesitamos dejar separado las cloroquinas       
+            
+                    #     if aux_str == "baricitinib" or aux_str == "ruxolitinib" or aux_str =="tofacitinib":
+                    #         print(aux_str)
+                    #         aux_str = "JAKi"
+                            
                     else:
                         
                         index_node_list = directory_file.loc[directory_file.isin([aux_str]).any(axis=1)].index.tolist()
@@ -305,9 +320,14 @@ def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events =
 def id_order(df):                                                   #ordena RefId de forma que si tiene varios strings, los ordena con sort() de forma que todo salga igual
     
     dfr = df.copy()
+    #dfr["Ref ID"] = dfr["Ref ID"].astype(str)
     
     for i in range(0, len(dfr.index)):
         
+        if type(dfr.iloc[i, 0]) == int or type(dfr.iloc[i, 0]) == float:
+            
+            dfr.iloc[i, 0] = int(dfr.iloc[i, 0])
+            
         dfr.iloc[i, 0] = str(dfr.iloc[i, 0])
         aux_list = dfr.iloc[i, 0].split(", ")           #necesito el auxiliar ya que sin el no hace el sort()
         aux_list.sort()
@@ -510,6 +530,15 @@ def get_partial(dfRoB, dfOut, dich_or_cont):
     partial_author.drop(["Ref ID_y"], axis = 1, inplace = True)
     partial_author.rename(columns = {"Ref ID_x" : "Ref ID"}, inplace = True)
     
+    # col_list = partial_author.columns.tolist()
+    # col_list.remove("1st Author")
+    
+    # partial_author = partial_author.merge(partial_id.drop_duplicates(), on=col_list, how='left', indicator=True)
+    # partial_author = partial_author[partial_author['_merge'] == 'left_only']
+    # partial_author.drop(["1st Author_y"], axis = 1, inplace = True)
+    # partial_author.rename(columns = {"1st Author_x" : "1st Author"}, inplace = True)
+    # partial_author.drop(['_merge'], axis = 1, inplace = True)
+    
     partial = pd.concat([partial_id, partial_author], axis = 0)
     partial.drop_duplicates(subset = partial.columns[1:].tolist(), inplace = True)
     partial.drop_duplicates(subset = partial.columns[0:1].tolist() + \
@@ -517,6 +546,10 @@ def get_partial(dfRoB, dfOut, dich_or_cont):
     
     return partial
 
+# partial2 = get_partial(RoB, Dich, "Dichotomous Outcome")
+# dfRoB = RoB
+# dfOut = Dich
+# dich_or_cont = "Dichotomous Outcome"
 
 #this function takes both partial merges and vomits the df we need
 def literally_a_black_box_that_gets_us_what_we_need_lol(df1, df2):
@@ -545,7 +578,7 @@ def literally_a_black_box_that_gets_us_what_we_need_lol(df1, df2):
 
 def get_outcomes_ready(df, sheet, adverse_events = False, directory_file = 0, total_nan = False):
     
-    dfr = find_int_in_string(id_order(subdf(clean_treatments_names(cleandf(df, total_nan = False), sheet = sheet, directory_file = directory_file), sheet)), start_column = 3, end_column = 4)
+    dfr = find_int_in_string(id_order(subdf(clean_treatments_names(cleandf(df, total_nan = False), sheet = sheet, adverse_events = adverse_events, directory_file = directory_file), sheet)), start_column = 3, end_column = 4)
     dfr.columns = dfr.columns.get_level_values(1) 
     dfr = dfr.groupby(["Ref ID", "1st Author", "Intervention name", "Outcome"], as_index = False)["N analyzed"].agg(lambda x: x.sum())
     
@@ -554,7 +587,7 @@ def get_outcomes_ready(df, sheet, adverse_events = False, directory_file = 0, to
 #variation of past function for when we can discriminate by severity
 def get_outcomes_ready_severity(df, sheet, adverse_events = False, directory_file = 0, total_nan = False):
     
-    dfr = find_int_in_string(id_order(subdf(clean_treatments_names(cleandf(df, total_nan = False), sheet = sheet, directory_file = directory_file), sheet)), start_column = 3, end_column = 5)
+    dfr = find_int_in_string(id_order(subdf(clean_treatments_names(cleandf(df, total_nan = False), sheet = sheet, adverse_events = adverse_events, directory_file = directory_file), sheet)), start_column = 3, end_column = 5)
     dfr.columns = dfr.columns.get_level_values(1) 
     dfr = dfr.groupby(["Ref ID", "1st Author", "Intervention name", "Outcome", "Severe"], as_index = False)["N analyzed"].agg(lambda x: x.sum())
     
@@ -580,12 +613,15 @@ def get_risk_of_bias_ready(df, sheet, total_nan = False):                       
 def differences_on_new_doc(df_old, df_new):
     
     if type(df_old) != int:
-        df = pd.concat([df_old, df_new])
+        # df = pd.concat([df_old, df_new])
     
-        df = df[["Treatment 1", "Treatment 2", "1st Author", "Dichotomous Outcome", "Continuous Outcome"]]
+        # df = df[["Treatment 1", "Treatment 2", "Ref ID", "1st Author", "Dichotomous Outcome", "Continuous Outcome"]]
 
-        df = df.drop_duplicates(keep = False)
+        # df = df.drop_duplicates(keep = False)
 
+        merge_columns = ["Treatment 1", "Treatment 2", "Ref ID", "1st Author", "Dichotomous Outcome", "Continuous Outcome"]
+        df = pd.merge(df_old, df_new, how='outer', on = merge_columns, indicator=True)
+        df = df[df["_merge"]=="right_only"]
         df = df[["Treatment 1", "Treatment 2", "Dichotomous Outcome", "Continuous Outcome"]]
         
     else:
@@ -594,6 +630,12 @@ def differences_on_new_doc(df_old, df_new):
         df = df[["Treatment 1", "Treatment 2", "Dichotomous Outcome", "Continuous Outcome"]]
     
     return df
+
+# df3 = pd.merge(df1, df2, how='outer', indicator=True)
+#         .query('_merge=="left_only"')
+#         .drop('_merge',1)
+        
+# titanic[titanic["Age"] > 35]
 
 def number_of_new_treatments_column(df_old, df_new):
     
@@ -617,7 +659,7 @@ def number_of_new_treatments_column(df_old, df_new):
     inner_join_precursors.sort_values(by = ["Treatment 1", "Treatment 2"], inplace = True)
     
     return inner_join_precursors
-    
+
 #finds integers wrongly captured as strings and makes them integers again
         
 def find_int_in_string(df, start_column = 0, end_column = 1):
@@ -641,6 +683,50 @@ def find_int_in_string(df, start_column = 0, end_column = 1):
                     dfr.iloc[i, j] = np.nan
                 
     return dfr    
+# #finds integers wrongly captured as strings and makes them integers again
+        
+# def find_int_in_string(df, start_column = 0, end_column = 1, column_name_list = []):
+    
+#     dfr = df.copy()
+    
+#     if not column_name_list:
+    
+#         for i in range(0, len(df.index)):
+        
+#             for j in range(start_column, end_column + 1):
+            
+#                 cell = dfr.iloc[i, j]
+            
+#                 if type(cell) == str:
+                
+#                     if any(c.isdigit() for c in cell):
+                
+#                         dfr.iloc[i, j] = int(re.sub("\D", "", df.iloc[i, j]))
+                    
+#                     else:
+                    
+#                         dfr.iloc[i, j] = np.nan
+                        
+#     else:
+        
+#         for i in range(0, len(df.index)):
+            
+#             for column in column_name_list:
+                
+#                 cell = dfr.loc[dfr.index[i], column]
+                
+#                 if type(cell) == str:
+                
+#                     if any(c.isdigit() for c in cell):
+                
+#                         dfr.loc[dfr.index[i], column] = int(re.sub("\D", "", dfr.loc[dfr.index[i], column]))
+                    
+#                     else:
+                    
+#                         dfr.loc[dfr.index[i], column] = np.nan
+        
+                
+#     return dfr    
 
 #this function isnt used
 def subheaders_treatments(df):
@@ -793,11 +879,11 @@ def convert_bias_from_numbers(df):
     columns = ["Randomization", "Deviations from the intended\nintervention", "Missing outcome data", \
                "Measurement of outcome", "Selection of the reported\nresults", "Other"]
     
-    dfr[columns] = dfr[columns].mask(dfr == 1, "low risk of bias", try_cast = True)
-    dfr[columns] = dfr[columns].mask(dfr == 2, "probably low risk of bias", try_cast = True)
-    dfr[columns] = dfr[columns].mask(dfr == 3, "probably high risk of bias", try_cast = True)
-    dfr[columns] = dfr[columns].mask(dfr == 4, "high risk of bias", try_cast = True)
-    dfr[columns] = dfr[columns].mask(dfr == 23, "either probably low or probably high risk of bias", try_cast = True)
+    dfr[columns] = dfr[columns].mask(dfr == 1, "low risk of bias")
+    dfr[columns] = dfr[columns].mask(dfr == 2, "probably low risk of bias")
+    dfr[columns] = dfr[columns].mask(dfr == 3, "probably high risk of bias")
+    dfr[columns] = dfr[columns].mask(dfr == 4, "high risk of bias")
+    dfr[columns] = dfr[columns].mask(dfr == 23, "either probably low or probably high risk of bias")
     
     return dfr
 

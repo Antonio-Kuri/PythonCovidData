@@ -162,8 +162,12 @@ symptom_resolution = gradeing_sheet_parse(inner_join_precursors, "Continuous Out
 clearance_time = gradeing_sheet_parse(inner_join_precursors, "Continuous Outcome", 6)
 
 #exporting to excel part
-1
-name_excel = "COVID19 NMA - RoB ratings for GRADEing (created from " + Name_File_Data + ").xlsx"
+if severity == 1:
+    severity = "Severe-critical"
+elif severity == 2:
+    severity = "Mild-moderate"
+    
+name_excel = "COVID19 NMA - RoB ratings " + severity + " (created from " + Name_File_Data + ").xlsx"
 notes_list = ["* dexamethasone and methylprednisolone should be one node: glucocorticoids.", \
               "* chloroquine and hydroxychloroquine should be one node for all outcomes, except adverse events leading to discontinuation.", \
               "* interferon subtypes should be lumped in the same node. For example, interferon beta-1a and interferon beta-1b would be classified under the node interferon beta."]

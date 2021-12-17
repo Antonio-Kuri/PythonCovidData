@@ -10,7 +10,7 @@ import pandas as pd            #for creating the spreadsheet
 import numpy as np             #for nan
 import re as re                #for sub
 
-from Functions import cleandf, id_order, find_int_in_string, clean_treatments_names
+from Functions import cleandf, id_order, find_int_in_string#, clean_treatments_names
 
 from Functions_2 import *
 
@@ -26,10 +26,10 @@ if nodes_name == 0:
     
 else:
     nodes_file = pd.read_excel(nodes_name)
-    
+
 #gets the dataframes cleaned and re-indexed, this functions are found in "Functions.py"
 
-Precursor_1 = id_order(clean_treatments_names(cleandf(TrialsPrim),directory_file=nodes_file))
+Precursor_1 = id_order(clean_node_treatments_names(cleandf(TrialsPrim),filter_treat,directory_file=nodes_file))
 
 Precursor_2 = id_order(cleandf(TrialsPrim2))
 
@@ -39,7 +39,9 @@ Precursor_2 = id_order(cleandf(TrialsPrim2))
 #We do so extracting the data into different columns with the correct cell format we desire, one column at a time
 
 Precursor_1 = clean_trial_name(Precursor_1)
-Precursor_1 = find_int_in_string(Precursor_1, start_column = 5, end_column = 6)
+#Precursor_1_aux = find_int_in_string(Precursor_1, start_column = 5, end_column = 6)
+
+#bandaid 2 to get integers from the n randomized columns
 
 for n in range(1, 20):
             #print(n)
@@ -63,7 +65,7 @@ Precursor_1 = study_column(Precursor_1)
 
 Precursor_1 = publication_status_registration_column(Precursor_1)
 
-Precursor_1 = number_of_participants_column(Precursor_1, n_trial = 6)
+Precursor_1 = number_of_participants_column(Precursor_1)
 
 Precursor_1 = country_column(Precursor_1)
 
@@ -81,7 +83,7 @@ Precursor_1 = percentage_mechanical_ventilation_column(Precursor_1)
 
 Precursor_1 = ventilation_percentages_column(Precursor_1)
 
-Precursor_1 = treatments_column(Precursor_1, Name_File_Data, n_trial =6)
+Precursor_1 = treatments_column(Precursor_1, Name_File_Data)
 
 #after getting all the columns we want, we get the subdataframe of the reference id and 1st author
 #with the columns we obtained from the chain of functions previously applied

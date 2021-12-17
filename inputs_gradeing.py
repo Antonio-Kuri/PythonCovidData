@@ -7,8 +7,8 @@ Created on Mon Feb 15 18:21:17 2021
 """
 
 # Definicion de variables globales
-old_Name_File_Data = "COVID19 NMA Therapy Data (17-02-2021) (3).xlsx"
-Name_File_Data = "COVID19 NMA Blood Products (05-08-2021).xlsx" #nombre de archivo
+old_Name_File_Data = "COVID19 NMA Therapy Data (26-07-2021) (3).xlsx"
+Name_File_Data = "COVID19 NMA Therapy Data (06-12-2021) - revised.xlsx" #nombre de archivo
 
 Trial_Data = "Trial characteristics" #nombre de una hoja
 Trial_Data2 = "Risk of bias"
@@ -16,13 +16,13 @@ Trial_Data2 = "Risk of bias"
 Dichotomous = "Dichotomous outcomes"
 Continuous = "Continuous outcomes"
 
-severity = 1
+severity = 2
 
 #Nodes 
 #Replace with ( nodes_name = 0 ) if the coded grouping is desired to be used, instead of the file
 #nodes_name = 0
-nodes_name = "COVID19 NMA Blood Products Table of Nodes (12-07-2021).xlsx"
+nodes_name = "Table of nodes (27-11-2021).xlsx"
 
 #trial characteristics table
 #filter by treatment pair
-filter_treat = ["casirivimab, imdevimab", "placebo/standard care"]
+filter_treat = []#["molnupiravir", "fluvoxamine"]
