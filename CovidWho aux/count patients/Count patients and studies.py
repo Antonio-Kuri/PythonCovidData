@@ -10,7 +10,7 @@ import pandas as pd            #for creating the spreadsheet
 import numpy as np             #for nan
 #import re as re
 
-Name_File_Data = "All binary outcomes_long data for analysis_20210723.xlsx"
+Name_File_Data = "All continuous outcomes_long data for analysis_20211122.xlsx"
 Prim = pd.read_excel(Name_File_Data, header = [0,1])
 
 Prim.rename(columns=lambda x:x.split(" (")[0], inplace = True)
@@ -21,7 +21,7 @@ df_list = []
 for column in Prim.columns.levels[0]:
     dfr = Prim[column]
     df = dfr.copy()
-    df = df.groupby("treatment").agg({"sampleSize":"sum","refid":"count"})
+    df = df.groupby("treatment").agg({"sampleSize":"sum","RefID":"count"})
     df = df.rename(columns={"sampleSize":"No. of patients in each node","refid":"No. of studies in each node"})
     df.columns = pd.MultiIndex.from_product([[column], df.columns])
     df_list.append(df)

@@ -130,6 +130,7 @@ dmypy.json
 
 *.xlsx
 *.xlsx#
+*.csv
 
 Automatization Data to GRADEing/
 Automatization to abbreviated table/

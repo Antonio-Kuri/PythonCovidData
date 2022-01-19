@@ -85,8 +85,6 @@ def subdf(df, sheet):                                               #obtener las
         
     if sheet == "Dichotomous outcomes":
         
-        #dfr = dfr
-        
         dfr.drop("Comments", axis = 1, level = 0, inplace = True)
         dfr.drop("Follow-up time (days)", axis = 1, level = 1, inplace = True)
         dfr.drop("Number of events", axis = 1, level = 1, inplace = True)
@@ -100,7 +98,6 @@ def subdf(df, sheet):                                               #obtener las
         
     if sheet == "Continuous outcomes":    
         
-        dfr = dfr
         dfr.drop("Comments", axis = 1, level = 0, inplace = True)
         dfr.drop("Follow-up time (days)", axis = 1, level = 1, inplace = True)
         dfr.drop("Time to symptom resolution or time to clinical improvement criteria", axis = 1, level = 1, inplace = True)
@@ -140,25 +137,43 @@ def check_spelling_manually_lol(lst):              #a falta de opciones mejores 
         lst[m] = "".join(lst[m].rstrip())
         name =lst[m]
         
+        if name == "interferon-beta 1a (low-dose) (subcutaneous)" or name == "interferon beta-1a (low-dose) (subcutaneous)":
+            
+            lst[m] = "interferon beta-1a (low dose) (subcutaneous)"
+            
+        if name == "interferon-beta 1a (high-dose) (subcutaneous)" or name == "interferon beta-1a (high-dose) (subcutaneous)":
+            
+            lst[m] = "interferon beta-1a (high dose) (subcutaneous)"
+        
+        if name == "siltuxumab":
+            
+            lst[m] = "siltuximab"
+            
+        if name == "favipravir":
+            
+            lst[m] = "favipiravir"
+            
+        if name == "rivabirin":
+            
+            lst[m] = "ribavirin"
             
         if name == "α-lipoic acid":
             
             lst[m] = "alpha lipoic acid"
             
+        if name == "cacifediol":
+            
+            lst[m] = "calcifediol"
+            
         if name == "tocfacitnib":
             
             lst[m] = "tofacitinib"
-            
-        #if name == "hydoxychloroquine" or name == "Hydroxychloroquine" or name == "(hydroxy)chloroquine":
-        # if "y)chloroquine" in name:
-        #     #print(name)
-        #     lst[m] = "hydroxychloroquine"
-            
+            #name == "chloroquine `" or 
         if "ychloroquine" in name:
-            #print(name)
+
             lst[m] = "hydroxychloroquine"
             
-        if name == "nano-curcumin":
+        if name == "nano-curcumin" or name == "nanocurcimin":
             
             lst[m] = "nanocurcumin"
             
@@ -170,7 +185,7 @@ def check_spelling_manually_lol(lst):              #a falta de opciones mejores 
     
 
 def treat_list_grouping(lst, adverse_events = False):              #esta funcion agrupa de acuerdo a las directrices que nos mandan
-    
+    #esta funcion esta interfiriendo con el correcto funcionamiento de los nodos. Se va a dehjar de usar
     n = len(lst)
     
     for m in range(0, n):
@@ -220,13 +235,17 @@ def treat_list_grouping(lst, adverse_events = False):              #esta funcion
     return lst
 
     
-def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events = False, directory_file = 0):             
+def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events = False, directory_file = 0, node_mask_inplace = True):             
                                                                     #esta funcion limpia, con ayuda de treat_list_grouping, 
                                                                     #los nombres de los tratamientos, ignorando dias y dosis y ordenando los elementos
     dfr=df.copy()
     #n_trial = 7
+    
+    exceptions_list = ["PNB001", "SNG001"]
+    list_treatment_not_in_node_file = []
+    
     for n in range(1, 20):
-            #print(n)
+
         try:
             dfr["Intervention {}".format(n)]
         except KeyError:
@@ -236,6 +255,10 @@ def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events =
         n=2
     
     for i in range(1, n):                                     #Check all cells of names
+    
+        if node_mask_inplace == False:
+            
+            dfr[("Intervention node", f"Intervention {i} name node")]= ""
         
         for j in range(0, len(dfr.index)):
                                                                     #revisamos una celda
@@ -250,59 +273,78 @@ def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events =
             elif sheet == "Continuous outcomes" or sheet == "Continuous outcomes-severity":
                 
                 aux_str = dfr.loc[j, ("Intervention name", "Intervention name")]
-                #print(aux_str)
+
             
             if type(aux_str) == str:                                #vemos solo los strings
+                
+                if "(" in aux_str:
                     
-                aux_str = re.sub(r"\([^)]*\)", "", aux_str)         #esto quita los parentesis
+                    inside_parentheses = re.search(r'\((.*?)\)',aux_str).group(1)
+                    parentheses_contains_digit = False
+                
+                    if type(inside_parentheses) == str:
+                        for character in inside_parentheses:
+                    
+                            if character.isdigit():
+                                parentheses_contains_digit = True
+                
+                    if parentheses_contains_digit:
+                    
+                        if inside_parentheses  not in exceptions_list:
+                        
+                            aux_str = re.sub(r"\([^)]*\)", "", aux_str)         #esto quita los parentesis
+                        
                 #aux_str = aux_str[0].lower() + aux_str[1:]
-                aux_str = aux_str.strip()
+                aux_str = aux_str.strip(' `')
                 aux_list = aux_str.split(", ")
                                                                                 #aqui va el combinador para entender distintas categorias como una, 
                 aux_list = check_spelling_manually_lol(aux_list)                #como placebo y standard care, en la forma de placebo/standard care
                 
                 if type(directory_file) != int:
                     
-                    aux_list.sort()
+                    directory_file[directory_file.columns] = directory_file.apply(lambda x: x.str.strip())
                     
                     aux_str = ", ".join(aux_list)
+                    aux_str_lower = aux_str[0].lower() + aux_str[1:]
+                    aux_list.sort(key=lambda v: v.upper())
+                    aux_str_order = ", ".join(aux_list)
+                        
+                    index_node_list = directory_file.loc[directory_file.isin([aux_str]).any(axis=1)].index.tolist()
+                    index_node_list_lower = directory_file.loc[directory_file.isin([aux_str_lower]).any(axis=1)].index.tolist()
+                    index_node_list_order = directory_file.loc[directory_file.isin([aux_str_order]).any(axis=1)].index.tolist()
                     
-                    if aux_str == "chloroquine" or aux_str == "hydroxychloroquine":
-                        
-                        if adverse_events == False:
-                            
-                            aux_str = "hydroxychloroquine"
-                            
-                        else:
-                            
-                            aux_str = aux_str
-                            
-                    # if adverse_events == True:                                #Para la pestaña de efectos adversos necesitamos dejar separado las cloroquinas       
-            
-                    #     if aux_str == "baricitinib" or aux_str == "ruxolitinib" or aux_str =="tofacitinib":
-                    #         print(aux_str)
-                    #         aux_str = "JAKi"
-                            
-                    else:
-                        
-                        index_node_list = directory_file.loc[directory_file.isin([aux_str]).any(axis=1)].index.tolist()
-                        
-                        if len(index_node_list) == 0:
+                    if len(index_node_list) == 0 and len(index_node_list_lower) == 0 and len(index_node_list_order) == 0:
 
-                            aux_str = aux_str
+                        aux_str = aux_str
+                        list_treatment_not_in_node_file.append(aux_str)
+                        
+                    elif len(index_node_list) != 0:
                             
-                        else:
+                        index_node = index_node_list[0]
+                        aux_str = directory_file.loc[index_node,"Node"]
+                        
+                    elif len(index_node_list_lower) != 0:
                             
-                            index_node = index_node_list[0]
-                            aux_str = directory_file.loc[index_node,"Node"]
+                        index_node = index_node_list_lower[0]
+                        aux_str = directory_file.loc[index_node,"Node"]
+                        
+                    elif len(index_node_list_order) != 0:
+                            
+                        index_node = index_node_list_order[0]
+                        aux_str = directory_file.loc[index_node,"Node"]
                             
                     aux_list = aux_str.split(", ")
                     
-                aux_list = treat_list_grouping(aux_list, adverse_events)
+                #aux_list = treat_list_grouping(aux_list, adverse_events)
             
-                aux_list.sort()
+                aux_list.sort(key=lambda v: v.upper())
                                                                     #reconstruye el string
-                if sheet == "Trial characteristics":
+                                                                    
+                if node_mask_inplace == False:
+                    
+                    dfr.loc[j, ("Intervention node", f"Intervention {i} name node")]= ", ".join(aux_list)
+                    
+                elif sheet == "Trial characteristics":
                 
                     dfr.loc[j, (f"Intervention {i}", f"Intervention {i} name")] = ", ".join(aux_list)
                 
@@ -313,7 +355,8 @@ def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events =
                 elif sheet == "Continuous outcomes" or sheet == "Continuous outcomes-severity":
                 
                     dfr.loc[j, ("Intervention name", "Intervention name")] = ", ".join(aux_list)
-
+    set_treatments_not_in_node_file = list(set(list_treatment_not_in_node_file))
+    print(set_treatments_not_in_node_file)
     return dfr
                               
 
@@ -478,14 +521,16 @@ def cross_treatments(df):                                           #saca nuevas
 
     return dfr
 
-def order_treatments_on_2_columns(df):
+def order_treatments_on_2_columns(df, treatment1 = 'Intervention name_x', treatment2 = 'Intervention name_y', associated_vars1 = [], associated_vars2 = [], Total_N = True):
     
     df.reset_index(inplace = True, drop = True)
     dfr = df.copy()
-    treatments1 = 'Intervention name_x'
-    treatments2 = 'Intervention name_y'
+    treatments1 = treatment1
+    treatments2 = treatment2
     #N1 = 'Total N_x'
     #N2 = 'Total N_y'
+    if len(associated_vars1) != len(associated_vars2):
+        print("number of associated variables to treatments do not match")
     
     for i in range(0, len(df.index)):
         
@@ -498,10 +543,18 @@ def order_treatments_on_2_columns(df):
         if (cell1 != "standard care/placebo" and cell1 != "placebo/standard care") and (cell2 != "standard care/placebo" and cell2 != "placebo/standard care"):
                             
             sorting_list = [str(cell1), str(cell2)]
-            sorting_list.sort()
+            sorting_list.sort(key=lambda v: v.upper())
                             
             dfr.loc[i, treatments1] = sorting_list[0]
             dfr.loc[i, treatments2] = sorting_list[1]
+            
+            if str(cell1) != sorting_list[0]:
+                
+                for column1, column2 in zip(associated_vars1, associated_vars2):
+                    
+                    aux_var =  dfr.loc[i, column1]
+                    dfr.loc[i, column1] = dfr.loc[i, column2]
+                    dfr.loc[i, column2] = aux_var
                             
         else:
                             
@@ -514,8 +567,16 @@ def order_treatments_on_2_columns(df):
                                 
                 dfr.loc[i, treatments1] = cell2
                 dfr.loc[i, treatments2] = cell1
+                
+                for column1, column2 in zip(associated_vars1, associated_vars2):
+                    
+                    aux_var =  dfr.loc[i, column1]
+                    dfr.loc[i, column1] = dfr.loc[i, column2]
+                    dfr.loc[i, column2] = aux_var
         
-        dfr["Total N"] = dfr["Total N_x"] + dfr["Total N_y"]
+        if Total_N:
+            
+            dfr["Total N"] = dfr["Total N_x"] + dfr["Total N_y"]
 
     return dfr
 
@@ -676,7 +737,8 @@ def find_int_in_string(df, start_column = 0, end_column = 1):
                 
                 if any(c.isdigit() for c in cell):
                 
-                    dfr.iloc[i, j] = int(re.sub("\D", "", df.iloc[i, j]))
+                    aux_thing = re.findall('[0-9]+', df.iloc[i, j])
+                    dfr.iloc[i, j] = max([int(x) for x in aux_thing])
                     
                 else:
                     

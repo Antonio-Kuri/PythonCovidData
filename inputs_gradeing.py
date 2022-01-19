@@ -7,8 +7,8 @@ Created on Mon Feb 15 18:21:17 2021
 """
 
 # Definicion de variables globales
-old_Name_File_Data = "COVID19 NMA Therapy Data (26-07-2021) (3).xlsx"
-Name_File_Data = "COVID19 NMA Therapy Data (06-12-2021) - revised.xlsx" #nombre de archivo
+old_Name_File_Data = "COVID19 NMA Therapy Data (22-11-2021) - revised.xlsx"
+Name_File_Data = "COVID19 NMA Therapy Data (06-12-2021) - revised(1).xlsx" #nombre de archivo
 
 Trial_Data = "Trial characteristics" #nombre de una hoja
 Trial_Data2 = "Risk of bias"

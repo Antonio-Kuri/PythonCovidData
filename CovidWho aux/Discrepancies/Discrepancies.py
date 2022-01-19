@@ -15,8 +15,8 @@ sys.path.append("../..")
 from Functions import cleandf
 
 #####name of inputs
-Name_File_Data = "COVID19 NMA Therapy Data (03-09-2021) (2)(1).xlsx"
-log_File_Data = "IncludedLog.xlsx"
+Name_File_Data = "COVID19 NMA Therapy Data (06-12-2021) - revised.xlsx"
+log_File_Data = "Included Log (10).xlsx"
 
 ####import and basic cleaning
 Prim_NMA = pd.read_excel(Name_File_Data, header = None, sheet_name = "Trial characteristics")
