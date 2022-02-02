@@ -9,34 +9,13 @@ Created on Fri Dec 8 08:28:58 2022
 import pandas as pd            #for creating the spreadsheet
 import numpy as np             #for nan
 import re as re                #for sub
+from scipy.stats import norm, t
+#import math 
 
 import sys
 sys.path.append("../..")
 
 from Functions import cleandf, clean_treatments_names, check_spelling_manually_lol, id_order, find_int_in_string, order_treatments_on_2_columns
-
-#####name of inputs
-Name_File_Data = "COVID19 NMA Therapy Data (06-12-2021) - revised(1).xlsx"
-nodes_name = "Table of nodes (27-11-2021).xlsx"
-Dichotomous = "Dichotomous outcomes"
-Continuous = "Continuous outcomes"
-
-Dich_Dictionary = ["Mortality", "Mechanical ventilation", "Admission to hospital", "Adverse events", \
-                   "Viral clearance", "Venous thromboembolism","Clinically important bleeding"]
-Cont_Dictionary = ["Hospitalization LOS", "ICU LOS", "Ventilator-free days", \
-                   "Duration of ventilation", "Symptom resolution", "Time to clearance"]
-
-if nodes_name == 0:
-    nodes_file = 0
-    
-else:
-    nodes_file = pd.read_excel(nodes_name)
-
-DichPrim = pd.read_excel(Name_File_Data, header = None, sheet_name = Dichotomous)
-ContPrim = pd.read_excel(Name_File_Data, header = None, sheet_name = Continuous)
-
-Dich =cleandf(DichPrim, total_nan = True)
-Cont =cleandf(ContPrim, total_nan = True)
 
 def data_prep_subdf(df, sheet):
     dfr = df.copy()
@@ -52,19 +31,6 @@ def data_prep_subdf(df, sheet):
         dfr.drop("Time to symptom resolution or time to clinical improvement criteria", axis = 1, level = 1, inplace = True)
         
     return dfr
-
-Dich =data_prep_subdf(Dich, Dichotomous)
-Cont =data_prep_subdf(Cont, Continuous)
-
-Dich =id_order(Dich)
-Cont =id_order(Cont)
-
-Dich=clean_treatments_names(Dich, sheet = Dichotomous, directory_file = nodes_file, node_mask_inplace = False)
-Cont =clean_treatments_names(Cont, sheet = Continuous, directory_file = nodes_file, node_mask_inplace = False)
-
-Dich =find_int_in_string(Dich, start_column = 3, end_column = 5)
-Cont =find_int_in_string(Cont, start_column = 3, end_column = 5)
-Cont =find_int_in_string(Cont, start_column = 7, end_column = 7)
 
 def find_float_in_string(df, start_column = 0, end_column = 1):
     
@@ -97,6 +63,189 @@ def find_float_in_string(df, start_column = 0, end_column = 1):
                 
     return dfr
 
+def get_outcome(df, dichotomous_or_continuous, n_outcome):
+    
+    dfr = df.copy()
+    
+    dfr = dfr[dfr[dichotomous_or_continuous] == n_outcome]
+    dfr = dfr.drop(["Outcome"], axis = 1)
+    
+    return dfr
+
+def pop_variability_columns(df):
+    
+    dfr = df.copy()
+    dfr["Variability Interval"] = [(0, 0)]*len(dfr)
+    dfr["Variability Interval 1"] = 0
+    dfr["Variability Interval 2"] = 0
+    dfr["Variability Value"] = 0
+    
+    dfr.loc[dfr["Variability"].apply(type) == tuple, "Variability Interval"] = dfr["Variability"]
+    dfr.loc[dfr["Variability"].apply(type) != tuple, "Variability Value"] = dfr["Variability"]
+       
+    dfr["Variability Interval 1"] = dfr["Variability Interval"].map(lambda x: x[0])
+    dfr["Variability Interval 2"] = dfr["Variability Interval"].map(lambda x: x[1])
+    
+    dfr.drop("Variability Interval", axis = 1, inplace = True)
+    dfr = dfr.astype({'Variability Value': 'float64'})
+    
+    return dfr
+
+def estimate_mean_sd(df, better_CI_estimate = True):
+    
+    dfr = df.copy()
+    
+    dfr["Mean"] = np.nan
+    dfr["Standard Deviation"] = np.nan
+    
+    #dfr = dfr.astype({'N analyzed': 'float64'})
+    dfr.loc[dfr["Measure of variability"] == np.nan, "Measure of variability"] = 10
+    
+    dfr.loc[dfr["Measure of central tendency"] == 1, "Mean"] = dfr["Central tendency"]
+    
+    dfr["Mean"] = np.where(((dfr["Measure of central tendency"].astype(int) == 2) & (dfr["Measure of variability"].astype(int) == 1)), dfr["Central tendency"], dfr["Mean"])
+    
+    dfr["Mean"] = np.where(((dfr["Measure of central tendency"].astype(int) == 2) & (dfr["Measure of variability"].astype(int) == 2)), dfr["Central tendency"], dfr["Mean"])
+    
+    dfr["Mean"] = np.where(((dfr["Measure of central tendency"].astype(int) == 2) & (dfr["Measure of variability"].astype(int) == 3)), dfr["Central tendency"], dfr["Mean"])
+    
+    dfr["Mean"] = np.where(((dfr["Measure of central tendency"].astype(int) == 2) & (dfr["Measure of variability"].astype(int) == 4) &
+                            ((dfr["Variability Interval 2"] == 0) & (dfr["Variability Interval 2"] == 0))), dfr["Central tendency"], dfr["Mean"])
+    
+    dfr["Mean"] = np.where(((dfr["Measure of central tendency"].astype(int) == 2) & (dfr["Measure of variability"].astype(int) == 5) &
+                            ((dfr["Variability Interval 2"] == 0) & (dfr["Variability Interval 2"] == 0))), dfr["Central tendency"], dfr["Mean"])
+    
+    dfr["Mean"] = np.where(((dfr["Measure of central tendency"].astype(int) == 2) & (dfr["Measure of variability"].astype(int) == 4) &
+                            ((dfr["Variability Interval 2"] != 0) | (dfr["Variability Interval 2"] != 0))), (dfr["Central tendency"] + \
+                                                                                                             dfr["Variability Interval 2"] + \
+                                                                                                             dfr["Variability Interval 1"])/3, \
+                                                                                                             dfr["Mean"])
+        
+    dfr["Mean"] = np.where(((dfr["Measure of central tendency"].astype(int) == 2) & (dfr["Measure of variability"].astype(int) == 5) &
+                            ((dfr["Variability Interval 2"] != 0) | (dfr["Variability Interval 2"] != 0))), (2*dfr["Central tendency"] + \
+                                                                                                             dfr["Variability Interval 2"] + \
+                                                                                                             dfr["Variability Interval 1"])/4, \
+                                                                                                             dfr["Mean"])
+    
+    dfr["Mean"] = np.where(((dfr["Measure of central tendency"].astype(int) == 2) & (dfr["Measure of variability"].astype(int) == 10)), dfr["Central tendency"], dfr["Mean"])    
+    
+    dfr.loc[dfr["Measure of variability"] == 1, "Standard Deviation"] = dfr["Variability Value"]
+    
+    dfr.loc[dfr["Measure of variability"] == 2, "Standard Deviation"] = (dfr["Variability Value"] * \
+                                                                         np.sqrt(dfr["N analyzed"]))
+    if better_CI_estimate:
+        
+        dfr.loc[dfr["Measure of variability"] == 3, "Standard Deviation"] = np.abs(dfr["Variability Value"] + \
+                                                                             dfr["Variability Interval 2"] - \
+                                                                             dfr["Variability Interval 1"]) * \
+                                                                             np.sqrt(dfr["N analyzed"]) /\
+                                                                             (2*t.ppf(0.975, dfr["N analyzed"] - 1))
+                                                                          
+    else:
+        
+        dfr.loc[dfr["Measure of variability"] == 3, "Standard Deviation"] = np.abs(dfr["Variability Value"] + \
+                                                                             dfr["Variability Interval 2"] - \
+                                                                             dfr["Variability Interval 1"]) * \
+                                                                             np.sqrt(dfr["N analyzed"]) /\
+                                                                             (3.92)
+                                                                                                         
+    dfr.loc[dfr["Measure of variability"] == 4, "Standard Deviation"] = np.abs(dfr["Variability Value"] + \
+                                                                         dfr["Variability Interval 2"] - \
+                                                                         dfr["Variability Interval 1"])/(2* \
+                                                                         norm.ppf((0.75*dfr["N analyzed"] - 0.125)/\
+                                                                                  (dfr["N analyzed"] + 0.25)))
+                                                                                                         
+    dfr.loc[dfr["Measure of variability"] == 5, "Standard Deviation"] = np.abs(dfr["Variability Value"] + \
+                                                                         dfr["Variability Interval 2"] - \
+                                                                         dfr["Variability Interval 1"])/(2* \
+                                                                         norm.ppf((dfr["N analyzed"] - 0.375)/\
+                                                                                  (dfr["N analyzed"] + 0.25)))
+    return dfr
+
+def global_mean(df, sample_size_column = "N_analyzed_x", means_column = "Mean"):
+    
+    dfr = df.copy()
+    
+    total_size = dfr[sample_size_column].sum()
+    
+    mean = (dfr[sample_size_column] * dfr[means_column]).sum()
+    
+    mean = mean/total_size
+    
+    return mean
+
+def global_sd(df, sample_size_column = "N_analyzed_x", means_column = "Mean_x", sd_column = "Standard_Deviation"):
+    
+    sd = df.copy()
+    
+    mean = global_mean(sd, sample_size_column = sample_size_column, means_column = means_column)
+    
+    sd["Weighted SD"] = (sd[sample_size_column] - 1)*(sd[sd_column]**2)
+    sd_value = sd["Weighted SD"].sum()
+    
+    sd["2nd term"] = (sd[sample_size_column]*(sd[means_column]**2))
+    second_term = sd["2nd term"].sum()
+                      
+    third_term = (-1)*(mean**2)*sd[sample_size_column].sum()
+    
+    N_value = sd[sample_size_column].sum()
+    
+    if N_value > len(sd) + 0.0000001:
+        
+        N_value = N_value - len(sd)
+    
+    global_sd = np.sqrt((sd_value + second_term + third_term)/N_value)
+    
+    return global_sd
+
+def sd_imputation(df, sample_size_column = "N_analyzed", means_column = "Mean", sd_column = "Standard_Deviation"):
+    
+    dfr = df.copy()
+    
+    sdc = dfr[(dfr["Intervention"] == "standard care/placebo") & (dfr["Standard_Deviation"].notna())]
+    
+    sd_value = global_sd(sdc, sample_size_column = sample_size_column, means_column = means_column, sd_column = sd_column)
+    
+    dfr.loc[dfr["Standard_Deviation"].isna(), "Standard_Deviation"] = sd_value
+    
+    return dfr
+
+#####name of inputs
+Name_File_Data = "COVID19 NMA Mini NMA data (31-01-2022).xlsx"
+nodes_name = "Table of nodes - mini NMA (31-01-2022).xlsx"
+Dichotomous = "Dichotomous outcomes"
+Continuous = "Continuous outcomes"
+
+# Dich_Dictionary = ["Mortality", "Mechanical ventilation", "Admission to hospital", "Adverse events", \
+#                    "Viral clearance", "Venous thromboembolism","Clinically important bleeding"]
+# Cont_Dictionary = ["Hospitalization LOS", "ICU LOS", "Ventilator-free days", \
+#                    "Duration of ventilation", "Symptom resolution", "Time to clearance"]
+
+if nodes_name == 0:
+    nodes_file = 0
+    
+else:
+    nodes_file = pd.read_excel(nodes_name)
+
+DichPrim = pd.read_excel(Name_File_Data, header = None, sheet_name = Dichotomous)
+ContPrim = pd.read_excel(Name_File_Data, header = None, sheet_name = Continuous)
+
+Dich =cleandf(DichPrim, total_nan = True)
+Cont =cleandf(ContPrim, total_nan = True)
+
+Dich =data_prep_subdf(Dich, Dichotomous)
+Cont =data_prep_subdf(Cont, Continuous)
+
+Dich =id_order(Dich)
+Cont =id_order(Cont)
+
+Dich=clean_treatments_names(Dich, sheet = Dichotomous, directory_file = nodes_file, node_mask_inplace = False)
+Cont =clean_treatments_names(Cont, sheet = Continuous, directory_file = nodes_file, node_mask_inplace = False)
+
+Dich =find_int_in_string(Dich, start_column = 3, end_column = 5)
+Cont =find_int_in_string(Cont, start_column = 3, end_column = 5)
+Cont =find_int_in_string(Cont, start_column = 7, end_column = 7)
+
 Cont =find_float_in_string(Cont, start_column = 6, end_column = 6)
 Cont =find_float_in_string(Cont, start_column = 8, end_column = 8)
 
@@ -116,6 +265,7 @@ Dich["Number of events"] = pd.to_numeric(Dich["Number of events"])
 
 Dichlong = Dich.groupby(["Ref ID", "1st Author", "Intervention 1 name node", "Outcome"], as_index = False)\
     [["N analyzed", "Number of events", "Intervention name"]].agg(lambda x: x.sum())
+    
 Dichlong = Dichlong.groupby(["Ref ID", "1st Author", "Outcome"]).filter(lambda d: len(d) > 1)
 
 Dichlong.rename(columns = {"Ref ID" : "refid", \
@@ -149,72 +299,131 @@ Dichwide.rename(columns = {"stauthor" : "study", \
     
 Dichwide = Dichwide.drop(["refid"], axis = 1)
 Dichwide = Dichwide[Dichwide.columns[[0,1,5,4,3,7,6,2]]]
-  
-def get_outcome(df, dichotomous_or_continuous, n_outcome):
-    
-    dfr = df.copy()
-    
-    dfr = dfr[dfr[dichotomous_or_continuous] == n_outcome]
-    dfr = dfr.drop(["Outcome"], axis = 1)
-    
-    return dfr
     
 for outcome in Dich_Outcome_dict:
     
     index = Dich_Outcome_dict.index(outcome) + 1
     
     outcome_long_df = get_outcome(Dichlong, "Outcome", index)
-    outcome_long_df.to_csv(outcome + " - long data format.csv", index = False, )
-    
     outcome_wide_df = get_outcome(Dichwide, "Outcome", index)
-    outcome_wide_df.to_csv(outcome + " - wide data format.csv", index = False, )
     
-"""
-mortality_long = get_outcome(Dichlong, "Outcome", 1)
-
-ventilation_long = get_outcome(Dichlong, "Outcome", 2)
-
-hospital_admission_long = get_outcome(Dichlong, "Outcome", 3)
-
-adverse_events_long = get_outcome(Dichlong, "Outcome", 4)
-
-viral_clearance_long = get_outcome(Dichlong, "Outcome", 5)
-
-venous_thromboembolism_long = get_outcome(Dichlong, "Outcome", 6)
-
-bleeding_long = get_outcome(Dichlong, "Outcome", 7)
-
-####
-mortality_wide = get_outcome(Dichwide, "Outcome", 1)
-
-ventilation_wide = get_outcome(Dichwide, "Outcome", 2)
-
-hospital_admission_wide = get_outcome(Dichwide, "Outcome", 3)
-
-adverse_events_wide = get_outcome(Dichwide, "Outcome", 4)
-
-viral_clearance_wide = get_outcome(Dichwide, "Outcome", 5)
-
-venous_thromboembolism_wide = get_outcome(Dichwide, "Outcome", 6)
-
-bleeding_wide = get_outcome(Dichwide, "Outcome", 7)
-"""
-"""
-1) Duration of hospitalization [days]
-2) ICU length of stay [days]
-3) Ventilator-free days [within 28 days; days]
-4) Duration of ventilation [days]
-5) Time to symptom resolution or time to clinical improvement [days]
-6) Time to viral clearance [days]
-"""
+    if len(outcome_long_df) > 0:
+        
+        outcome_long_df.to_csv(outcome + " - long data format.csv", index = False, )
+        outcome_wide_df.to_csv(outcome + " - wide data format.csv", index = False, )
     
-
 ###Cont group
+
 to_numeric_columns = ["Outcome", "Central tendency", "Measure of variability"]
 for column in to_numeric_columns:
     
     Cont[column] = pd.to_numeric(Cont[column])
+    
+Contlong = Cont[Cont["N analyzed"].notna()]
+Contlong = Contlong[Contlong["Measure of central tendency"].notna()]
+Contlong = Contlong[Contlong["Central tendency"].notna()]
 
-#Contgroup = Cont.groupby(["Ref ID", "1st Author", "Intervention 1 name node", "Outcome"], as_index = False)[["N analyzed", "Number of events", "Intervention name"]].agg(lambda x: x.sum())
-#Contgroup = Contgroup.groupby(["Ref ID", "1st Author", "Outcome"]).filter(lambda d: len(d) > 1)
+Contlong.loc[Contlong["Measure of variability"] > 5, "Measure of variability"] = np.nan
+
+Contlong = pop_variability_columns(Contlong)
+Contlong.loc[Contlong["Measure of variability"].isna(), "Measure of variability"] = 10
+
+Contlong = estimate_mean_sd(Contlong, better_CI_estimate = False)
+
+Contlong = Contlong[Contlong["N analyzed"] > 0]
+
+non_space_names = {"Ref ID" : "Ref_ID", \
+                   "1st Author" : "1st_Author", \
+                   "Intervention 1 name node" : "Intervention", \
+                   "N analyzed" : "N_analyzed", \
+                   "Standard Deviation" : "Standard_Deviation"}
+
+Contlong.rename(columns = non_space_names, inplace=True)
+
+#####Comparison between sd estimations from 95% CI
+# Contdev = estimate_mean_sd(Contlong)
+# Contdev2 = estimate_mean_sd(Contlong, better_CI_estimate = False)
+
+# Contdev = Contdev[Contdev["Measure of variability"] == 3]
+# Contdev2 = Contdev2[Contdev2["Measure of variability"] == 3]
+
+# Contdev = Contdev[["1st Author", "N analyzed", "Standard Deviation"]]
+# Contdev2 = Contdev2[["1st Author", "N analyzed", "Standard Deviation"]]
+
+# Comparison = pd.merge(Contdev2, Contdev, left_index=True, right_index=True)
+# Comparison.drop("1st Author_y", axis = 1, inplace = True)
+# Comparison.drop("N analyzed_y", axis = 1, inplace = True)
+
+# Comparison["Relative difference"] = 100*(Comparison["Standard Deviation_x"] - Comparison["Standard Deviation_y"]) / Comparison["Standard Deviation_x"]
+
+# Comparison.plot(x = "N analyzed_x", y = "Relative difference", style = '.', ylabel = "Relative dfference (%)")
+
+Contlong = sd_imputation(Contlong)
+
+select_continuous_columns = ["Ref_ID", "1st_Author", "Intervention", "Outcome", "N_analyzed", "Mean", "Standard_Deviation"]
+
+Contlong = Contlong[select_continuous_columns]
+
+Contgroup_N = Contlong.groupby(["Ref_ID", "1st_Author", "Intervention", "Outcome"], as_index = False).agg({"N_analyzed" : 'sum'})
+Contlong_N = pd.merge(Contlong, Contgroup_N, how = "left", on = ["Ref_ID", "1st_Author", "Intervention", "Outcome"])
+#Contlong_N.drop("N_analyzed_x", axis = 1, inplace = True)
+Contlong_N.rename(columns={'N_analyzed_y': 'N_analyzed'}, inplace=True)
+
+Contgroup_mean = Contlong_N.groupby(["Ref_ID", "1st_Author", "Intervention", "Outcome", "N_analyzed"], as_index = False).apply(global_mean)
+Contgroup_mean.columns.values[5] = "Mean"
+Contlong_mean = pd.merge(Contlong_N, Contgroup_mean, how = "left", on = ["Ref_ID", "1st_Author", "Intervention", "Outcome", "N_analyzed"])
+Contlong_mean.rename(columns={"Mean_y": "Mean"}, inplace=True)
+
+Contgroup = Contlong_mean.groupby(["Ref_ID", "1st_Author", "Intervention", "Outcome", "N_analyzed", "Mean"], as_index = False).apply(global_sd)
+Contgroup.columns.values[6] = "Standard_Deviation"
+
+Contgroup = Contgroup.groupby(["Ref_ID", "1st_Author", "Outcome"]).filter(lambda d: len(d) > 1)
+
+Contgroup.rename(columns = {"Ref_ID" : "RefID", \
+                            "1st_Author" : "study", \
+                            "Intervention" : "treatment", \
+                            "Mean" : "mean", \
+                            "Standard_Deviation" : "std.dev", \
+                            "N_analyzed" : "sampleSize"}, inplace = True)
+    
+Contgroup = Contgroup[Contgroup.columns[[0,1,2,3,5,6,4]]]
+
+Contgroup = Contgroup.sort_values(by = ['study', 'treatment'])
+
+#####
+Contwide = pd.merge(Contgroup, Contgroup, on = ["RefID", "study", "Outcome"])
+Contwide.drop(Contwide[Contwide['treatment_x'] == Contwide['treatment_y']].index, inplace = True)
+Contwide = order_treatments_on_2_columns(Contwide, treatment1 = 'treatment_x', treatment2 = 'treatment_y', associated_vars1 = ["mean_x", "std.dev_x", "sampleSize_x"], associated_vars2 = ["mean_y", "std.dev_y", "sampleSize_y"], Total_N = False)
+Contwide.drop_duplicates(inplace=True, ignore_index=False)
+
+Contwide.rename(columns = {"stauthor" : "study", \
+                           "treatment_x" : "t1", \
+                           "treatment_y" : "t2", \
+                           "mean_x" : "mean1", \
+                           "mean_y" : "mean2", \
+                           "std.dev_x" : "sd1", \
+                           "std.dev_y" : "sd2", \
+                           "sampleSize_x" : "n1", \
+                           "sampleSize_y" : "n2"}, inplace = True)
+    
+Contwide = Contwide.drop(["RefID"], axis = 1)
+Contwide = Contwide[Contwide.columns[[0,1,6,3,4,5,7,8,9,2]]]
+
+Cont_Outcome_dict = ["Duration of hospitalization", \
+                     "ICU length of stay", \
+                     "Ventilator-free days", \
+                     "Duration of ventilation", \
+                     "Time to symptom resolution", \
+                     "Time to viral clearance"]
+
+for outcome in Cont_Outcome_dict:
+    
+    index = Cont_Outcome_dict.index(outcome) + 1
+    
+    outcome_long_df = get_outcome(Contgroup, "Outcome", index)
+    outcome_wide_df = get_outcome(Contwide, "Outcome", index)
+    
+    if len(outcome_long_df) > 0:
+        outcome_long_df.to_csv(outcome + " - long data format.csv", index = False, )
+        outcome_wide_df.to_csv(outcome + " - wide data format.csv", index = False, )
 

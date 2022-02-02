@@ -816,7 +816,6 @@ def stronger_left_join_trial_characteristics(df1, df2):
     
     left_join["Outcomes"].fillna("", inplace = True)
     
-    
     #group by all the columns except the last, aggregating again the outcomes
     left_join = left_join.groupby(left_join.columns[:-1].tolist(), as_index = False)["Outcomes"].agg(lambda col: "\n".join(col))
     

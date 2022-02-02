@@ -11,7 +11,7 @@ import pandas as pd            #for creating the spreadsheet
 import numpy as np             #for nan
 import re as re                #for sub
 
-from Functions import cleandf, id_order
+from Functions import cleandf, id_order, find_int_in_string
 
 from Functions_2 import clean_trial_name
 
@@ -34,6 +34,7 @@ Precursor_1 = id_order(cleandf(TrialsPrim))
 
 Precursor_1 = clean_trial_name(Precursor_1)
 
+Precursor_1 = find_float_in_string(Precursor_1, start_column = 22, end_column = 28)
 
 n1 = registered_cell(Precursor_1)
 

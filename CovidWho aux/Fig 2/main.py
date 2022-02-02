@@ -91,7 +91,7 @@ def bg_color(subrow):
     else:
          return subrow_out
 
-def round_value(df, name):
+def round_value(df, name, dich = True, risk_difference = False):
     
     dfr = df.copy()
     
@@ -101,17 +101,54 @@ def round_value(df, name):
         aux_list = aux_str.split(' (')
         value = aux_list[0]
         interval = " (" + aux_list[1]
-        value = str(round(float(value)))
+        if dich:
+            if risk_difference:
+                value = str(round(1000*float(value)))
+                aux_interval = interval.split(" to ")
+                interval1 = str(round(1000*float(aux_interval[0].replace(" (",""))))
+                interval2 = str(round(1000*float(aux_interval[1].replace(")",""))))
+                interval = " (" + interval1 + " to " + interval2 + ")"
+            else:
+                value = str(round(float(value)))
+                aux_interval = interval.split(" to ")
+                interval1 = str(round(float(aux_interval[0].replace(" (",""))))
+                interval2 = str(round(float(aux_interval[1].replace(")",""))))
+                interval = " (" + interval1 + " to " + interval2 + ")"
+        else:
+            value = str("{0:.1f}".format(float(value)))
+            aux_interval = interval.split(" to ")
+            interval1 = str("{0:.1f}".format(float(aux_interval[0].replace(" (",""))))
+            interval2 = str("{0:.1f}".format(float(aux_interval[1].replace(")",""))))
+            interval = " (" + interval1 + " to " + interval2 + ")"
         dfr.loc[i, (name, "Values")] = value + interval
-        
+    return dfr
+
+def higher_certainty_estimate(df, name):
+    
+    dfr = df.copy()
+    
+    dfr.loc[dfr[(name, "Higher certainty estimate")] == "DIRECT", (name, "Values")] = dfr[(name, "Values")] + " *"
+    dfr.loc[dfr[(name, "Higher certainty estimate")] == "INDIRECT", (name, "Values")] = dfr[(name, "Values")] + " **"
+    
     return dfr
 
 #####import whole directory xlsx files
 list_files = glob.glob('./*.xlsx')
 sheet = "Automatic classification"
-list_name =[]
-list_df = []
+ATsheet = "AT class"
+#list_name_dich =[]
+#list_name_cont =[]
+
+list_df_dich = []
+list_df_cont = []
+
 name_excel = "Figure 2.xlsx"
+
+list_dichotomous = ["Mortality", "Ventilation", "Mechanical Ventilation", "Hospital admission", "Admission to hospital", "Adverse effects", "Adverse events", "Viral clearance", \
+                    "Venous thromboembolism", "VTE", "Bleeding", "Clinically important bleeding"]
+    
+list_continuous = ["Hospitalization LOS", "Duration of hospitalization", "ICU LOS", "Ventilator-free days", "Duration of ventilation", "Duration of Mechanical ventilation", \
+                   "Symptom resolution", "Time to symptom resolution", "Time to clearance"]
 
 try:
     list_files.remove("./" + name_excel)
@@ -121,25 +158,60 @@ except ValueError:
 for file in list_files:
     name1 = file.split(' - ')[0]
     name = name1.split("./")[1]
-    list_name.append(name)
     
     Name_File_Data = file
 
     dfPrim = pd.read_excel(Name_File_Data, header = None, sheet_name = sheet)
+    
+    dfATclass = pd.read_excel(Name_File_Data, header = None, sheet_name = ATsheet)
+    dfATclass.columns = dfATclass.iloc[1]
+    
+    dfATclass = dfATclass[["Intervention", "Higher certainty estimate"]]    
+    dfATclass.dropna(how = "all", inplace = True)
+    dfATclass.drop(dfATclass.index[0], inplace = True)
 
     df = create_columns(dfPrim)
+    df = pd.merge(df, dfATclass, left_on = "Treatment", right_on = "Intervention")
+    df.drop("Intervention", axis = 1, inplace = True)
     
     df.columns = pd.MultiIndex.from_product([[name], df.columns])
     df.reset_index(inplace = True, drop = True)
+
     
-    df = round_value(df, name)
+    if len(df.loc[df[(name,"Effect")] == "Best"].index) == 0:
+        
+        df.loc[df[(name,"Effect")] == "Better than SC", (name,"Effect")] = "Best"
+        
+    if len(df.loc[df[(name,"Effect")] == "Worst"].index) == 0:
+        
+        df.loc[df[(name,"Effect")] == "Harmful", (name,"Effect")] = "Worst"
     
-    list_df.append(df)
-    
-list_df= sorted(list_df, key=lambda x:len(x), reverse = True)
+    if name in list_dichotomous:
+        
+        #list_name_dich.append(name)
+        if name == "Adverse effects" or name == "Adverse events":
+            df = round_value(df, name, risk_difference = True)
+        else:
+            df = round_value(df, name)
+        df = higher_certainty_estimate(df, name)
+        list_df_dich.append(df)
+        
+    elif name in list_continuous:
+        
+        #list_name_cont.append(name)
+        df = round_value(df, name, dich = False)
+        df = higher_certainty_estimate(df, name)
+        list_df_cont.append(df)
+
+
+list_df_dich= sorted(list_df_dich, key=lambda x:len(x), reverse = True)
+list_df_cont= sorted(list_df_cont, key=lambda x:len(x), reverse = True)
+
+list_df = list_df_dich + list_df_cont
 
 ### join all the dataframes by treatment
-merge_df = pd.concat([df.set_index(df.columns[0]) for df in list_df], axis=1).reset_index().sort_values('index')
+merge_df = pd.concat([df.set_index(df.columns[0]) for df in list_df], axis=1).reset_index().sort_values('index', key = lambda col: col.str.lower())
+merge_df.reset_index(inplace = True, drop = True)
 #merge_df = merge_df.rename(columns={'': 'Values'})
 
 out_df = merge_df.copy()
@@ -160,6 +232,7 @@ out_df = out_df[cols_order]
 writer = pd.ExcelWriter(name_excel, engine='xlsxwriter')
 
 styled_df = out_df.copy().style
+styled_df.set_properties(**{'text-align': 'center'})#, subset = pd.IndexSlice[:, list(set(out_df.columns.get_level_values(0).tolist()))])
 
 for output in list(set(styled_df.columns.get_level_values(0))):
 

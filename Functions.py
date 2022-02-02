@@ -356,6 +356,7 @@ def clean_treatments_names(df, sheet = "Trial characteristics", adverse_events =
                 
                     dfr.loc[j, ("Intervention name", "Intervention name")] = ", ".join(aux_list)
     set_treatments_not_in_node_file = list(set(list_treatment_not_in_node_file))
+    print(f"List of treatments not in table of nodes from sheet {sheet}")
     print(set_treatments_not_in_node_file)
     return dfr
                               

@@ -8,12 +8,43 @@ Created on Thu Mar 18 20:05:59 2021
 
 import pandas as pd            #for creating the spreadsheet
 import numpy as np             #for nan
-#import re as re                #for sub
+import re as re                #for sub
 
 from Functions_2 import percentage_mechanical_ventilation_column
 
 #functions for the condensed
 #every function is a cell
+
+def find_float_in_string(df, start_column = 0, end_column = 1):
+    
+    dfr = df.copy()
+    
+    for i in range(0, len(df.index)):
+        
+        for j in range(start_column, end_column + 1):
+            
+            cell = dfr.iloc[i, j]
+            
+            if type(cell) == str:
+                
+                if any(c.isdigit() for c in cell):
+                
+                    aux_list = re.findall(r"[-+]?\d*\.\d+|\d+", df.iloc[i, j])
+                    aux_list = [float(x) for x in aux_list]
+                    
+                    if len(tuple(aux_list)) > 1:
+                        
+                        dfr.iat[i, j] = tuple(aux_list)
+                        
+                    else:
+                    
+                        dfr.iloc[i,j] = aux_list[0]
+                    
+                else:
+                    
+                    dfr.iloc[i, j] = np.nan
+                
+    return dfr
 
 def registered_cell(df):
     
@@ -45,10 +76,18 @@ def publication_cells(df):
     for i in range(0, len(srs.index)):
         
         aux_str = srs.loc[i]
-        aux_str = str(aux_str).replace(",", "")
-        aux_lst = [int(s) for s in aux_str.split() if s.isdigit()]
-        aux_str = min(aux_lst)
-        
+        if type(aux_str) != str:
+            aux_str = int(aux_str)
+            
+        else:
+            aux_str = str(aux_str).replace(",", "")
+            aux_lst = [int(s) for s in aux_str.split() if s.isdigit()]
+            #print(aux_lst)
+            if aux_lst == []:
+                aux_str == str
+            
+            else:
+                aux_str = int(min(aux_lst))
         if aux_str == 2:
             
             preprint += 1
@@ -62,7 +101,7 @@ def publication_cells(df):
             unpublished += 1
             
         else:
-            print(f"{aux_str}" + "wasnt counted. Contact maintainance")
+            print(f"{srs.loc[i]}" + " wasn't counted. Contact maintainance")
             
     preprint = f"{preprint} ("  + "{:.1f}".format((preprint)*100/size) + "%)"
     published = f"{published} ("  + "{:.1f}".format((published)*100/size) + "%)"
@@ -182,7 +221,7 @@ def ventilation_cell(df):
     dfr = df.copy()
     srs = percentage_mechanical_ventilation_column(dfr)[("% Mechanical \nventilation \n(at baseline)", "% Mechanical \nventilation \n(at baseline)")]
     srs.replace("NR", np.nan, inplace = True)
-    
+    print(srs)
     median = srs.median()
     q1 = srs.quantile(0.25)
     q3 = srs.quantile(0.75)
@@ -195,26 +234,25 @@ def number_patients_cell(df):
     
     N_rand = "N randomized"
 
-    #columns_patients = [("Intervention 1", N_rand), ("Intervention 2", N_rand), ("Intervention 3", N_rand), \
-    #                    ("Intervention 4", N_rand), ("Intervention 5", N_rand)]
-    
     dfr = df.copy()
-    
+    dfr[("N total", "N total")] = 0
     columns_patients = []
-    
+    #print(dfr[("N total", "N total")])
     for n in range(1, 20):
         #print(n)
         try:
             dfr[("Intervention {}".format(n), N_rand)]
             columns_patients.append(("Intervention {}".format(n), N_rand))
+            dfr[("Intervention {}".format(n), N_rand)] = pd.to_numeric(dfr[("Intervention {}".format(n), N_rand)], errors='coerce')
         except KeyError:
             break
-    
+        
     dfr = dfr[columns_patients]
+
+    dfr.astype('float64')
     
-    dfr.replace("NR", np.nan, inplace = True)
-    
-    total_patients = dfr.sum(axis = 1)
+    dfr[("N total", "N total")] = dfr.sum(axis = 1, numeric_only = True)
+    total_patients = dfr[("N total", "N total")]
     
     median = total_patients.median()
     q1 = total_patients.quantile(0.25)
